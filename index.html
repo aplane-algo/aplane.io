@@ -64,9 +64,14 @@
       font: inherit;
     }
 
-    a {
-      display: inline-block;
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
       margin-top: 16px;
+    }
+
+    a {
       color: var(--muted);
       text-decoration: none;
       font-size: 15px;
@@ -83,7 +88,10 @@
   <main>
     <img src="img/aplane.png" alt="APlane">
     <p><code>curl -fsSL https://raw.githubusercontent.com/aplane-algo/aplane/main/bootstrap-install.sh | bash</code></p>
-    <a href="https://github.com/aplane-algo/aplane">Github</a>
+    <nav aria-label="Project links">
+      <a href="https://github.com/aplane-algo/aplane">Github</a>
+      <a href="https://github.com/aplane-algo/aplane/blob/main/README.md">README</a>
+    </nav>
   </main>
 </body>
 </html>
