@@ -48,10 +48,18 @@
       margin: 0 auto 16px;
     }
 
-    p {
+    .install {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 10px;
       width: fit-content;
       max-width: 100%;
       margin: 0 auto;
+    }
+
+    p {
+      margin: 0;
       padding: 14px;
       text-align: center;
       overflow-wrap: anywhere;
@@ -61,9 +69,7 @@
       border-radius: 8px;
       line-height: 1.5;
       font-size: 15px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      min-width: 0;
     }
 
     code {
@@ -72,21 +78,21 @@
 
     .copy-btn {
       flex-shrink: 0;
-      background: transparent;
-      color: var(--command);
+      background: var(--bg);
+      color: var(--text);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px 10px;
+      border-radius: 8px;
+      padding: 0 14px;
       font: inherit;
-      font-size: 13px;
+      font-size: 14px;
       cursor: pointer;
       transition: background 0.15s, color 0.15s;
     }
 
     .copy-btn:hover,
     .copy-btn:focus {
-      background: var(--command);
-      color: var(--panel);
+      background: var(--panel);
+      color: var(--command);
       outline: none;
     }
 
@@ -120,10 +126,10 @@
   <main>
     <img src="img/aplane.png" alt="APlane">
     <div class="tagline">APlane Signer and Shell for Linux and MacOS</div>
-    <p>
-      <code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/aplane-algo/aplane/main/bootstrap-install.sh | bash</code>
+    <div class="install">
+      <p><code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/aplane-algo/aplane/main/bootstrap-install.sh | bash</code></p>
       <button type="button" class="copy-btn" id="copy-btn" aria-label="Copy install command">Copy</button>
-    </p>
+    </div>
     <script>
       (function () {
         var btn = document.getElementById('copy-btn');
