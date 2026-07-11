@@ -292,8 +292,6 @@ function drawAttempt(){
   const a=pos.A, d=pos.D;
   mk('line',{class:'edge-bad',x1:a[0],y1:a[1],x2:d[0],y2:d[1]},attemptLayer);
   mk('line',{class:'barrier',id:'barrier',x1:792,y1:214,x2:768,y2:286},attemptLayer);
-  const t=mk('text',{class:'edge-bad-label',x:(a[0]+d[0])/2,y:(a[1]+d[1])/2-46,'text-anchor':'middle'},attemptLayer);
-  t.textContent='A → D';
 }
 function barrierHot(on){ const b=$('barrier'); if(b) b.classList.toggle('hot',on); }
 
@@ -352,7 +350,7 @@ function launchAllowed(fromKey,toKey,label,delay){
   const t=token;
   setTimeout(async ()=>{
     if(!t.alive) return;
-    const ok=await packet({from:pos[fromKey],to:pos[toKey],label,dur:1300});
+    const ok=await packet({from:pos[fromKey],to:pos[toKey],label,dur:1857});
     if(!ok || !t.alive) return;
     flash(dNodeEl[toKey]);
     mark(pos[toKey][0], pos[toKey][1]-58, true);
@@ -363,7 +361,7 @@ function launchRejection(delay){
   setTimeout(async ()=>{
     if(!t.alive) return;
     flash('nodeA'); barrierHot(false);
-    const ok=await packet({from:pos.A,to:BAR,label:'pay 8 → D',cls:'bad',dur:1300});
+    const ok=await packet({from:pos.A,to:BAR,label:'pay 100,000',cls:'bad',dur:1857});
     if(!ok || !t.alive) return;
     barrierHot(true);
     mark(BAR[0]+2, BAR[1], false);
