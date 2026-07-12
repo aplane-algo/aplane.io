@@ -80,6 +80,9 @@ text{user-select:none}
 .node.outsider.lit .node-box{stroke:var(--red);stroke-dasharray:6 5;filter:drop-shadow(0 0 12px rgba(242,107,107,.4))}
 
 /* scene 3 — focus on one link */
+.link-frame{fill:rgba(79,224,196,.1);stroke:var(--teal);stroke-width:2.5;stroke-dasharray:9 5;
+  filter:drop-shadow(0 0 10px rgba(79,224,196,.45))}
+.link-frame-label{font-family:var(--mono);font-weight:600;font-size:12px;letter-spacing:.18em;fill:var(--teal)}
 .flink{stroke:var(--teal);stroke-width:1.8;fill:none;opacity:.55}
 .attach{stroke:#5a6a86;stroke-width:7;stroke-linecap:round;fill:none}
 .gate-box{fill:var(--panel-deep);stroke:rgba(79,224,196,.45);stroke-width:1.2}
@@ -258,12 +261,12 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
             <path class="tick" d="M377.5 343 l2.6 2.9 l4.8 -5.6"/>
             <text class="chk-text" x="397" y="347">D is on the allowlist</text>
           </g>
-          <text class="gate-result" id="gateResult" x="372" y="388">→ transfer approved</text>
+          <text class="gate-result" id="gateResult" x="372" y="388">→ transfer authorized</text>
         </g>
 
         <g id="gate4" transform="translate(0,300)" opacity="0">
           <rect class="gate-box" x="355" y="227" width="290" height="176" rx="12"/>
-          <text class="gate-title" x="372" y="251">NEW WHITELIST LOGICSIG</text>
+          <text class="gate-title" x="372" y="251">NEW ALLOWLIST LOGICSIG</text>
           <g class="chip teal">
             <rect x="360" y="265" width="180" height="22" rx="7"/>
             <text x="450" y="280" text-anchor="middle">allowlist: B · C · D · E</text>
@@ -278,7 +281,7 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
             <path class="tick" d="M377.5 343 l2.6 2.9 l4.8 -5.6"/>
             <text class="chk-text" x="397" y="347">allowed recipient</text>
           </g>
-          <text class="gate-result on" x="372" y="388">→ transfer approved</text>
+          <text class="gate-result on" x="372" y="388">→ transfer authorized</text>
         </g>
 
         <g class="rekey-tag" id="rekeyTag" opacity="0" transform="translate(500,465)">
@@ -380,7 +383,7 @@ const scenes=[
   },
   {
     kicker:'INSIDE ONE LINK',
-    title:'Whitelisted Falcon, up close',
+    title:'Falcon Accounts with Allowlists, up close',
     body:'Zoom into the A → D link. Account A’s LogicSig is the canonical Falcon LogicSig extended to limit recipients to a compiled allowlist. To pay D, A produces a Falcon-1024 signature, and that LogicSig checks two things on-chain: a valid post-quantum signature, and an allowed recipient. Both pass, so the payment settles to D — the very proof that could not exist back in scene 1, before D was added.'
   },
   {
@@ -471,7 +474,8 @@ function mark(x,y,ok=true){
 }
 function stamp(x,y,text){
   if(REDUCED) return;
-  const pos2=mk('g',{transform:`translate(${x},${y}) rotate(-7)`});
+  /* horizontal stamp — placed clear of barrier / dashed edges */
+  const pos2=mk('g',{transform:`translate(${x},${y})`});
   const g=mk('g',{class:'stamp'},pos2);
   const w=text.length*11+28;
   mk('rect',{x:-w/2,y:-17,width:w,height:34,rx:6},g);
@@ -511,7 +515,7 @@ function launchRejection(delay){
     if(!ok || !t.alive) return;
     barrierHot(true);
     mark(BAR[0]+2, BAR[1], false);
-    setTimeout(()=>{ if(t.alive){ stamp(860,248,'IMPOSSIBLE'); flash('nodeD'); } },260);
+    setTimeout(()=>{ if(t.alive){ stamp(930,198,'IMPOSSIBLE'); flash('nodeD'); } },260);
     setTimeout(()=>{ if(t.alive) barrierHot(false); },2600);
   },delay);
 }
@@ -561,20 +565,109 @@ function runLoop(n){
   else loop5();
 }
 
-/* scene 3 — slide the mesh off left, bring the A–D link into focus */
+/* scene 3 — highlight A→D on the mesh, slide focus with the same bound, then fade */
+function clearLinkFrame(){
+  const g=$('linkFrame'); if(g) g.remove();
+}
+function clearFocusLinkFrame(){
+  const g=$('focusLinkFrame'); if(g) g.remove();
+}
+function clearAllLinkFrames(){
+  clearLinkFrame();
+  clearFocusLinkFrame();
+}
+function setLinkFrameOpacity(o){
+  const g=$('linkFrame'); if(g) g.setAttribute('opacity',Math.max(0,Math.min(1,o)).toFixed(3));
+}
+function setFocusLinkFrameOpacity(o){
+  const g=$('focusLinkFrame'); if(g) g.setAttribute('opacity',Math.max(0,Math.min(1,o)).toFixed(3));
+}
+function makeLinkFrameGroup(id, x, y, w, h, label){
+  const g=document.createElementNS(NS,'g');
+  g.setAttribute('id',id);
+  g.setAttribute('opacity','0');
+  const rect=document.createElementNS(NS,'rect');
+  rect.setAttribute('class','link-frame');
+  rect.setAttribute('x',x); rect.setAttribute('y',y);
+  rect.setAttribute('width',w); rect.setAttribute('height',h);
+  rect.setAttribute('rx','18');
+  g.appendChild(rect);
+  const lbl=document.createElementNS(NS,'text');
+  lbl.setAttribute('class','link-frame-label');
+  lbl.setAttribute('x',x+w/2);
+  lbl.setAttribute('y',y-14);
+  lbl.setAttribute('text-anchor','middle');
+  lbl.textContent=label;
+  g.appendChild(lbl);
+  return g;
+}
+function placeLinkFrame(){
+  clearLinkFrame();
+  const a=pos.A, d=pos.D;
+  /* node boxes are 210×74, centered on pos */
+  const padX=118, padY=58;
+  const x=Math.min(a[0],d[0])-padX;
+  const y=Math.min(a[1],d[1])-padY;
+  const w=Math.abs(d[0]-a[0])+padX*2;
+  const h=Math.abs(d[1]-a[1])+padY*2;
+  const g=makeLinkFrameGroup('linkFrame', x, y, w, h, 'A → D');
+  meshLayer.appendChild(g);
+  return g;
+}
+/* Bounds wrap focus A + LogicSig gate + focus D (scene 3 layout) */
+function placeFocusLinkFrame(){
+  clearFocusLinkFrame();
+  const x=78, y=198, w=1038, h=228;
+  const g=makeLinkFrameGroup('focusLinkFrame', x, y, w, h, 'A → D');
+  /* paint above the link so the selection reads clearly while sliding in */
+  focusLayer.appendChild(g);
+  return g;
+}
+async function highlightLinkAD(){
+  if(REDUCED) return true;
+  placeLinkFrame();
+  flash('nodeA',1800);
+  flash('nodeD',1800);
+  /* fade frame + label in (opacity on the group — not CSS, so it can animate) */
+  const okIn=await tween(420,p=>setLinkFrameOpacity(ease(p)));
+  if(!okIn){ clearAllLinkFrames(); return false; }
+  setLinkFrameOpacity(1);
+  /* hold so the viewer registers the link before the zoom */
+  if(!await sleep(900)){ clearAllLinkFrames(); return false; }
+  return true;
+}
+/* scene 3 — slide the mesh off left, bring the A–D link into focus (box rides along) */
 async function slideFocus(entering){
   const mFrom=entering?0:-1300, mTo=entering?-1300:0;
   const fFrom=entering?1300:0, fTo=entering?0:1300;
   if(REDUCED){
+    clearAllLinkFrames();
     meshLayer.setAttribute('transform',`translate(${mTo},0)`);
     focusLayer.setAttribute('transform',`translate(${fTo},0)`);
     return true;
   }
-  return await tween(900,p=>{
+  if(entering){
+    /* focus-stage box slides in with A → LogicSig → D */
+    placeFocusLinkFrame();
+    setFocusLinkFrameOpacity(1);
+  } else {
+    clearFocusLinkFrame();
+  }
+  const ok=await tween(900,p=>{
     const e=ease(p);
     meshLayer.setAttribute('transform',`translate(${lerp(mFrom,mTo,e)},0)`);
     focusLayer.setAttribute('transform',`translate(${lerp(fFrom,fTo,e)},0)`);
   });
+  /* mesh is off-stage; drop its box. focus box stays until settled fade. */
+  clearLinkFrame();
+  if(!ok){ clearFocusLinkFrame(); return false; }
+  if(entering){
+    if(!await sleep(480)){ clearFocusLinkFrame(); return false; }
+    const faded=await tween(520,p=>setFocusLinkFrameOpacity(1-ease(p)));
+    clearFocusLinkFrame();
+    if(!faded) return false;
+  }
+  return true;
 }
 function prepFocus(){
   ['chk1','chk2'].forEach(id=>{const e=$(id); if(e) e.classList.remove('done');});
@@ -649,6 +742,7 @@ function applyFocus3(){
   $('focusD').setAttribute('transform','translate(995,315)');
   $('focusE').setAttribute('opacity','0');
   drawFocusLinks(0,315);
+  clearFocusLinkFrame();
   hideRekeyTag();
   hidePadlock(); resetCompromise();
 }
@@ -659,6 +753,7 @@ function applyFocus4(){
   $('focusE').setAttribute('transform','translate(995,400)');
   $('focusE').setAttribute('opacity','1');
   drawFocusLinks(1,230);
+  clearFocusLinkFrame();
   hideRekeyTag();
   hidePadlock(); resetCompromise();
 }
@@ -799,7 +894,7 @@ async function loop5(){
       mark(790,395,false); flash(tg.node);
       if(!await sleep(220)){ bub.remove(); return; }
       bub.remove();
-      stamp(838,382,'IMPOSSIBLE');
+      stamp(720,455,'IMPOSSIBLE');
     }
     if(!await sleep(1500)) return;
     i++;
@@ -839,7 +934,7 @@ function staticFrame(n){
   if(n===0){
     add(pos.B[0],pos.B[1]-58,true); add(pos.C[0],pos.C[1]-58,true); add(pos.A[0]+120,pos.A[1]-30,true);
     add(BAR[0]+2,BAR[1],false); barrierHot(true);
-    const p=mk('g',{transform:'translate(860,248) rotate(-7)'});
+    const p=mk('g',{transform:'translate(930,198)'});
     const g=mk('g',{class:'stamp'},p); g.style.animation='none'; g.style.opacity='1';
     mk('rect',{x:-69,y:-17,width:138,height:34,rx:6},g);
     const t=mk('text',{x:0,y:6,'text-anchor':'middle'},g); t.textContent='IMPOSSIBLE';
@@ -897,8 +992,18 @@ async function setScene(n){
   let ok=true;
   if(n===2 && prev<2){          // mesh -> focus (scene 3)
     applyFocus3();
-    ok=await slideFocus(true);
+    /* if we skipped scene 2, land on the 4-node mesh so A→D is a clear top edge */
+    if(prev===0){
+      NODES.forEach(k=>pos[k]=layouts[1][k].slice());
+      bnow={...boundaryGeom[1]};
+      setNodeTransforms(); drawEdges(edgeSets[1]); setBoundary(bnow);
+      sceneChrome(1);
+    }
+    ok=await highlightLinkAD();
+    if(ok) ok=await slideFocus(true);
+    else clearAllLinkFrames();
   } else if(n<2 && prev>=2){    // focus -> mesh
+    clearAllLinkFrames();
     ok=await slideFocus(false);
   } else if(n===3 && prev===2){ // scene 3 -> scene 4 (rekey)
     ok=await transitionRekey(true);
