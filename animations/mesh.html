@@ -38,7 +38,8 @@ button:focus-visible{outline:2px solid var(--ink-teal);outline-offset:2px;border
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
 
 header{padding:44px 0 10px;text-align:center}
-.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.24em;color:var(--ink-teal);text-transform:uppercase}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.24em;color:var(--ink-teal);text-transform:uppercase;text-decoration:none}
+a.eyebrow:hover{text-decoration:underline;text-underline-offset:3px}
 .eyebrow .sep{color:var(--page-faint);margin:0 .5em}
 h1{font-weight:600;font-size:clamp(26px,4vw,40px);letter-spacing:-.015em;margin-top:10px;text-wrap:balance}
 .sub{color:var(--page-muted);max-width:62ch;margin:10px auto 0;text-wrap:balance}
@@ -177,7 +178,7 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
 <body>
 
 <header class="wrap">
-  <div class="eyebrow">aPlane<span class="sep">·</span>Algorand</div>
+  <a class="eyebrow" href="https://aplane.io">aPlane<span class="sep">·</span>Algorand</a>
   <h1>A Closed Transfer Mesh on Algorand</h1>
   <p class="sub">A set of accounts, each rekeyed to a LogicSig that defines its allowlist. Together, they form a closed transfer mesh.</p>
 </header>
@@ -199,6 +200,7 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
       <text class="boundary-label" id="blabel" x="430" y="66" text-anchor="middle">MESH · ALLOWLIST</text>
 
       <g id="edges"></g>
+      <g id="extEdges"></g>
       <g id="attempt"></g>
 
       <g class="node" id="nodeA" transform="translate(430,150)">
@@ -228,10 +230,9 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
       <g class="node external" id="nodeX" transform="translate(1350,470)" opacity="0">
         <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
         <circle class="node-dot" cx="-83" cy="-15" r="4"/>
-        <text class="node-title" x="0" y="-6" text-anchor="middle">CEX DEPOSIT</text>
+        <text class="node-title" x="0" y="-6" text-anchor="middle">BINANCE</text>
         <text class="node-sub" id="xSub" x="0" y="17" text-anchor="middle">external account</text>
       </g>
-      <g id="extEdges"></g>
       </g><!-- /meshLayer -->
 
       <g id="focus" transform="translate(1300,0)">
@@ -391,13 +392,13 @@ bnow={...boundaryGeom[0]};
 const scenes=[
   {
     kicker:'DEFINING THE MESH',
-    title:'A closed set with a hard edge. Protocol-enforced, no smart contracts required.',
-    body:'Accounts A, B and C transact only with each other. Paying Account D — outside the mesh — is impossible. The allowlist is compiled into the code that authorizes each account’s sends, so no valid transaction to D can exist.'
+    title:'A closed set with a hard edge, no smart contracts required',
+    body:'Accounts A, B, and C are restricted by consensus to send only to each other. Paying Account D — outside the mesh — is impossible. The allowlist is compiled into the code that authorizes each account’s sends, so no valid transaction to D can exist.'
   },
   {
     kicker:'EXPANDING THE MESH',
     title:'Growing the mesh by rekeying',
-    body:'The allowlist lives inside each account’s LogicSig, which can’t be edited in place. To enable sending to Account D, the accounts are rekeyed to new LogicSigs whose allowlists explicitly include D. Same funds, same identities — a larger mesh. What was impossible a moment ago is now an ordinary allowlisted transfer.'
+    body:'The allowlist lives inside each account’s LogicSig. To enable sending to Account D, the accounts are rekeyed to new LogicSigs whose allowlists explicitly include D. Same funds, same identities — a larger mesh. What was impossible a moment ago is now an ordinary allowlisted transfer.'
   },
   {
     kicker:'EXTERNAL DESTINATIONS',
