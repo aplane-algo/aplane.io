@@ -1196,18 +1196,29 @@ async function setScene(n){
 
 function restart(){
   if(busy) return;
+  /* always return to the first scene */
+  if(current!==0){
+    setScene(0);
+    return;
+  }
+  /* already on scene 1 — hard reset (setScene would no-op) */
+  busy=true;
   token.alive=false; token={alive:true};
   while(fx.firstChild) fx.firstChild.remove();
   document.querySelectorAll('.lit').forEach(e=>e.classList.remove('lit'));
   barrierHot(false);
-  if(current===3){ applyFocus3(); prepFocus(); runLoop(3); return; }
-  if(current===4){ applyFocus4(); runLoop(4); return; }
-  if(current===5){ applyFocus5(); runLoop(5); return; }
-  const meshIdx=current<=2?current:1;
-  NODES.forEach(k=>pos[k]=layouts[meshIdx][k].slice());
-  bnow={...boundaryGeom[meshIdx]};
-  setNodeTransforms(); drawEdges(edgeSets[meshIdx]); setBoundary(bnow);
-  sceneChrome(current); runLoop(current);
+  clearAllLinkFrames();
+  setBinanceVisible(false);
+  NODES.forEach(k=>pos[k]=layouts[0][k].slice());
+  bnow={...boundaryGeom[0]};
+  binancePos=BINANCE_OFF.slice();
+  setNodeTransforms(); drawEdges(edgeSets[0]); setBoundary(bnow);
+  meshLayer.setAttribute('transform','translate(0,0)');
+  focusLayer.setAttribute('transform','translate(1300,0)');
+  updateCaption(0);
+  sceneChrome(0);
+  runLoop(0);
+  busy=false;
 }
 
 (function(){
