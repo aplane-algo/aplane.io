@@ -1128,6 +1128,7 @@ async function loop5(){
       if(!await moveBubble(bub,668,315,890,tg.cy,1300)){ bub.remove(); return; }
       bub.remove(); flash(tg.node); mark(995,tg.cy-58,true);
     } else {
+      if(t2) t2.textContent='Hacker is not on the allowlist';
       if(c2) c2.classList.add('fail');
       if(!await sleep(560)){ ball.remove(); bub.remove(); return; }
       if(r4){ r4.textContent='→ transfer not authorized'; r4.classList.add('fail'); }

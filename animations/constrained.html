@@ -137,8 +137,8 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
       <g id="stageRoot">
         <line class="attach" x1="310" y1="315" x2="355" y2="315"/>
         <line class="flink" id="flinkAny" x1="645" y1="315" x2="890" y2="315" opacity="0.55"/>
-        <line class="flink" id="flinkD" x1="645" y1="315" x2="890" y2="230" opacity="0"/>
-        <line class="flink" id="flinkE" x1="645" y1="315" x2="890" y2="400" opacity="0"/>
+        <line class="flink" id="flinkB" x1="645" y1="315" x2="890" y2="230" opacity="0"/>
+        <line class="flink" id="flinkC" x1="645" y1="315" x2="890" y2="400" opacity="0"/>
 
         <g class="node" id="focusA" transform="translate(205,315)">
           <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
@@ -152,7 +152,7 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
           <text class="gate-title" id="gateTitle" x="372" y="236">LOGIC SIG · CHECKED ON-CHAIN</text>
           <g class="chip teal" id="progChip">
             <rect id="progChipRect" x="370" y="252" width="120" height="22" rx="7"/>
-            <text id="progChipText" x="430" y="267" text-anchor="middle">Pure Falcon</text>
+            <text id="progChipText" x="430" y="267" text-anchor="middle">Standard Falcon</text>
           </g>
           <g class="chk" id="chk1">
             <circle cx="381" cy="308" r="7"/>
@@ -163,7 +163,7 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
             <circle cx="381" cy="342" r="7"/>
             <path class="tick" d="M377.5 342 l2.6 2.9 l4.8 -5.6"/>
             <path class="cross" d="M376.5 337.5 L385.5 346.5 M385.5 337.5 L376.5 346.5"/>
-            <text class="chk-text" id="chk2Text" x="397" y="346">D is on the allowlist</text>
+            <text class="chk-text" id="chk2Text" x="397" y="346">B is on the allowlist</text>
           </g>
           <text class="gate-result" id="gateResult" x="372" y="390">→ transfer authorized</text>
         </g>
@@ -180,16 +180,16 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
           <text class="node-title" id="recvTitle" x="0" y="-6" text-anchor="middle">RECIPIENT</text>
           <text class="node-sub" id="recvSub" x="0" y="17" text-anchor="middle">any address</text>
         </g>
-        <g class="node" id="focusD" transform="translate(995,230)" opacity="0">
+        <g class="node" id="focusB" transform="translate(995,230)" opacity="0">
           <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
           <circle class="node-dot" cx="-83" cy="-15" r="4"/>
-          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT D</text>
+          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT B</text>
           <text class="node-sub" x="0" y="17" text-anchor="middle">in A’s allowlist</text>
         </g>
-        <g class="node" id="focusE" transform="translate(995,400)" opacity="0">
+        <g class="node" id="focusC" transform="translate(995,400)" opacity="0">
           <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
           <circle class="node-dot" cx="-83" cy="-15" r="4"/>
-          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT E</text>
+          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT C</text>
           <text class="node-sub" x="0" y="17" text-anchor="middle">not in allowlist</text>
         </g>
 
@@ -240,12 +240,12 @@ const scenes=[
   {
     kicker:'FALCON VIA LOGICSIG',
     title:'Falcon accounts are LogicSigs',
-    body:'A Falcon account is not a separate native key type in the ledger. It is a LogicSig — a small program the network evaluates at authorization time — whose job is to verify a Falcon-1024 signature over the transaction. Valid Falcon signature → spend authorized. No app, no shared contract state.'
+    body:'Currently, Falcon Accounts are implemented using Algorand Logic Signatures — small, stateless TEAL programs that the network evaluates for transaction authorization. A simple program checks a Falcon signature attached to the transaction and allows the spend if that signature is valid.<br><br>Native Falcon is coming in Q3 2026, so LogicSigs won’t be required for standard Falcon accounts anymore — but they can still be utilized to enable “constrained Falcon accounts”.'
   },
   {
     kicker:'ADD AN ALLOWLIST',
     title:'Constrained Falcon: same signature, extra rule',
-    body:'The power move is extending that LogicSig with another constraint dimension. Falcon still verifies — <strong>and</strong> the recipient must be on a compiled allowlist. Pay D: both checks pass. Pay E: Falcon can still sign, but E is not on the list — transfer not authorized.'
+    body:'We can harden the LogicSig by extending it with another constraint dimension. In this case, the addition of a compiled allowlist. Falcon still verifies — <strong>and</strong> the recipient must be on the allowlist. Pay B: both checks pass. Pay C: Falcon can still sign, but C is not on the list — transfer not authorized.'
   }
 ];
 
@@ -308,8 +308,8 @@ function prepGate(constrained){
   $('gateResult').classList.remove('on');
   $('gateResult').classList.remove('fail');
   $('gateResult').textContent='→ transfer authorized';
-  $('flinkD').setAttribute('class','flink');
-  $('flinkE').setAttribute('class','flink');
+  $('flinkB').setAttribute('class','flink');
+  $('flinkC').setAttribute('class','flink');
   if(!constrained){
     $('chk2').setAttribute('opacity','0');
     $('chk2').setAttribute('transform','translate(0,0)');
@@ -363,12 +363,12 @@ function setDualRecipients(on, opacity){
   const u=opacity==null?1:opacity;
   const nodeO=on?u.toFixed(3):'0';
   const linkO=on?(u*FLINK_OP).toFixed(3):'0';
-  $('focusD').setAttribute('opacity',nodeO);
-  $('focusE').setAttribute('opacity',nodeO);
-  $('flinkD').setAttribute('opacity',linkO);
-  $('flinkE').setAttribute('opacity',linkO);
-  $('flinkD').setAttribute('class','flink');
-  $('flinkE').setAttribute('class','flink');
+  $('focusB').setAttribute('opacity',nodeO);
+  $('focusC').setAttribute('opacity',nodeO);
+  $('flinkB').setAttribute('opacity',linkO);
+  $('flinkC').setAttribute('opacity',linkO);
+  $('flinkB').setAttribute('class','flink');
+  $('flinkC').setAttribute('class','flink');
   $('focusRecv').setAttribute('opacity',on?'0':'1');
   $('flinkAny').setAttribute('opacity',on?'0':String(FLINK_OP));
 }
@@ -383,18 +383,18 @@ function applyChrome(n){
     $('progChipText').setAttribute('x','454');
     $('chk2').setAttribute('opacity','1');
     $('chk2').setAttribute('transform','translate(0,0)');
-    $('chk2Text').textContent='D is on the allowlist';
+    $('chk2Text').textContent='B is on the allowlist';
     setDualRecipients(true, 1);
     $('stageNote').textContent='CONSTRAINED FALCON = FALCON + COMPILED ALLOWLIST';
     $('gateResult').setAttribute('y','398');
   } else {
     $('gateTitle').textContent='LOGIC SIG · CHECKED ON-CHAIN';
-    $('progChipText').textContent='Pure Falcon';
+    $('progChipText').textContent='Standard Falcon';
     $('progChipRect').setAttribute('width','120');
     $('progChipText').setAttribute('x','430');
     $('chk2').setAttribute('opacity','0');
     $('chk2').setAttribute('transform','translate(0,0)');
-    $('chk2Text').textContent='D is on the allowlist';
+    $('chk2Text').textContent='B is on the allowlist';
     setDualRecipients(false);
     $('recvTitle').textContent='RECIPIENT';
     $('recvSub').textContent='any address';
@@ -445,7 +445,7 @@ async function transitionChrome(toConstrained){
     return true;
   }
 
-  /* reverse: slide allowlist check out, hide D/E, restore base Falcon */
+  /* reverse: slide allowlist check out, hide B/C, restore base Falcon */
   setChk2Slide(1, 1);
   $('chk2').classList.remove('done','fail');
   const okOut=await tween(560,p=>{
@@ -514,8 +514,8 @@ async function loopFalconBase(){
 async function loopConstrained(){
   const t=token;
   const turns=[
-    { ok:true,  who:'D', node:'focusD', cy:230, label:'pay D', chk:'D is on the allowlist' },
-    { ok:false, who:'E', node:'focusE', cy:400, label:'pay E', chk:'E is on the allowlist' }
+    { ok:true,  who:'B', node:'focusB', cy:230, label:'pay B', chk:'B is on the allowlist' },
+    { ok:false, who:'C', node:'focusC', cy:400, label:'pay C', chk:'C is on the allowlist' }
   ];
   let i=0;
   while(t.alive){
@@ -524,10 +524,10 @@ async function loopConstrained(){
     $('chk2').setAttribute('opacity','1');
     $('chk2').setAttribute('transform','translate(0,0)');
     $('chk2Text').textContent=turn.chk;
-    $('flinkD').setAttribute('class','flink');
-    $('flinkE').setAttribute('class','flink');
-    $('flinkD').setAttribute('opacity',String(FLINK_OP));
-    $('flinkE').setAttribute('opacity',String(FLINK_OP));
+    $('flinkB').setAttribute('class','flink');
+    $('flinkC').setAttribute('class','flink');
+    $('flinkB').setAttribute('opacity',String(FLINK_OP));
+    $('flinkC').setAttribute('opacity',String(FLINK_OP));
     setFalconChipHome();
     flash('focusA');
     const bub=makeBubble(turn.label,668,315,!turn.ok);
@@ -555,14 +555,15 @@ async function loopConstrained(){
       flash(turn.node);
       mark(995, turn.cy-58, true);
     } else {
+      $('chk2Text').textContent='C is not on the allowlist';
       $('chk2').classList.add('fail');
-      $('flinkE').setAttribute('class','flink-bad');
-      $('flinkE').setAttribute('opacity',String(FLINK_BAD_OP));
+      $('flinkC').setAttribute('class','flink-bad');
+      $('flinkC').setAttribute('opacity',String(FLINK_BAD_OP));
       if(!await sleep(640)){ ball.remove(); bub.remove(); return; }
       $('gateResult').textContent='→ transfer not authorized';
       $('gateResult').classList.add('fail');
       if(!await sleep(500)){ ball.remove(); bub.remove(); return; }
-      /* rejected — bubble dies at the gate, never reaches E */
+      /* rejected — bubble dies at the gate, never reaches C */
       bub.classList.remove('staged');
       if(!await fadeTo(ball,0,280)){ ball.remove(); bub.remove(); return; }
       ball.remove();
@@ -583,7 +584,7 @@ function staticFrame(n){
   if(n>=1){
     $('chk2').setAttribute('opacity','1');
     $('chk2').classList.add('done');
-    $('chk2Text').textContent='D is on the allowlist';
+    $('chk2Text').textContent='B is on the allowlist';
     mark(995,172,true);
     mark(995,342,false);
   } else {
