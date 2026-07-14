@@ -272,7 +272,9 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
           <g class="chk" id="chk1">
             <circle cx="381" cy="315" r="7"/>
             <path class="tick" d="M377.5 315 l2.6 2.9 l4.8 -5.6"/>
-            <text class="chk-text" x="397" y="319">falcon_verify( sig )</text>
+            <!-- split so “sig” can land in a real gap between the parens -->
+            <text class="chk-text" x="397" y="319">falcon_verify (</text>
+            <text class="chk-text" x="541" y="319">)</text>
           </g>
           <g class="chk" id="chk2">
             <circle cx="381" cy="343" r="7"/>
@@ -292,7 +294,8 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
           <g class="chk" id="chk4_1">
             <circle cx="381" cy="315" r="7"/>
             <path class="tick" d="M377.5 315 l2.6 2.9 l4.8 -5.6"/>
-            <text class="chk-text" x="397" y="319">falcon_verify( sig )</text>
+            <text class="chk-text" x="397" y="319">falcon_verify (</text>
+            <text class="chk-text" x="541" y="319">)</text>
           </g>
           <g class="chk" id="chk4_2">
             <circle cx="381" cy="343" r="7"/>
@@ -840,19 +843,26 @@ async function moveBubble(g,x1,y1,x2,y2,dur){
 /* yellow signal ball: FALCON-1024 KEY chip (stays put) → falcon_verify (same as constrained.html) */
 const CHIP_HOME=[205,248];
 const BALL_FROM=CHIP_HOME.slice();
-const BALL_AT_VERIFY=[538,315]; /* just right of “falcon_verify( sig )” */
+const BALL_AT_VERIFY=[518,315]; /* slightly right in the paren gap */
 function setFalconChipHome(){
   const fc=$('falconChip'); if(!fc) return;
   fc.setAttribute('transform',`translate(${CHIP_HOME[0]},${CHIP_HOME[1]})`);
   fc.classList.remove('red'); fc.classList.add('amber');
 }
 function makeSignalBall(x,y,kind){
-  /* kind: 'amber' | 'red' — small translucent signal from key chip to falcon_verify */
-  const fill=kind==='red'?'var(--red)':'var(--amber)';
-  const stroke=kind==='red'?'#ff9a9a':'#f5c97a';
-  const g=mk('g',{class:'sig-ball',transform:`translate(${x},${y})`,opacity:'0.72'});
-  mk('circle',{cx:0,cy:0,r:5.5,fill,stroke,'stroke-width':'1',opacity:'0.9'},g);
-  mk('circle',{cx:0,cy:0,r:9,fill,opacity:'0.18'},g);
+  /* kind: 'amber' | 'red' — small “sig” token from key chip to falcon_verify */
+  const fill=kind==='red'?'#f26b6b':'#f0b45c';
+  const g=mk('g',{class:'sig-ball',transform:`translate(${x},${y})`,opacity:'0.88'});
+  const t=mk('text',{
+    x:0,y:4,
+    'text-anchor':'middle',
+    'font-family':"ui-monospace,'SF Mono',Menlo,Consolas,monospace",
+    'font-size':'12',
+    'font-weight':'600',
+    'letter-spacing':'0.06em',
+    fill
+  },g);
+  t.textContent='sig';
   return g;
 }
 function makeAmberBall(x,y){ return makeSignalBall(x,y,'amber'); }

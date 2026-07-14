@@ -148,24 +148,32 @@ footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-si
         </g>
 
         <g id="gate">
-          <rect class="gate-box" id="gateBox" x="355" y="210" width="290" height="210" rx="12"/>
-          <text class="gate-title" id="gateTitle" x="372" y="236">LOGIC SIG · CHECKED ON-CHAIN</text>
+          <rect class="gate-box" id="gateBox" x="355" y="198" width="290" height="232" rx="12"/>
+          <text class="gate-title" id="gateTitle" x="372" y="224">LOGIC SIG · CHECKED ON-CHAIN</text>
           <g class="chip teal" id="progChip">
-            <rect id="progChipRect" x="370" y="252" width="120" height="22" rx="7"/>
-            <text id="progChipText" x="430" y="267" text-anchor="middle">Standard Falcon</text>
+            <rect id="progChipRect" x="370" y="240" width="120" height="22" rx="7"/>
+            <text id="progChipText" x="430" y="255" text-anchor="middle">Standard Falcon</text>
           </g>
           <g class="chk" id="chk1">
-            <circle cx="381" cy="308" r="7"/>
-            <path class="tick" d="M377.5 308 l2.6 2.9 l4.8 -5.6"/>
-            <text class="chk-text" x="397" y="312">falcon_verify( sig )</text>
+            <circle cx="381" cy="296" r="7"/>
+            <path class="tick" d="M377.5 296 l2.6 2.9 l4.8 -5.6"/>
+            <!-- split so “sig” can land in a real gap between the parens -->
+            <text class="chk-text" x="397" y="300">falcon_verify (</text>
+            <text class="chk-text" x="541" y="300">)</text>
           </g>
           <g class="chk" id="chk2" opacity="0" transform="translate(0,0)">
-            <circle cx="381" cy="342" r="7"/>
-            <path class="tick" d="M377.5 342 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M376.5 337.5 L385.5 346.5 M385.5 337.5 L376.5 346.5"/>
-            <text class="chk-text" id="chk2Text" x="397" y="346">B is on the allowlist</text>
+            <circle cx="381" cy="328" r="7"/>
+            <path class="tick" d="M377.5 328 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M376.5 323.5 L385.5 332.5 M385.5 323.5 L376.5 332.5"/>
+            <text class="chk-text" id="chk2Text" x="397" y="332">B is on the allowlist</text>
           </g>
-          <text class="gate-result" id="gateResult" x="372" y="390">→ transfer authorized</text>
+          <g class="chk" id="chk3" opacity="0" transform="translate(0,0)">
+            <circle cx="381" cy="360" r="7"/>
+            <path class="tick" d="M377.5 360 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M376.5 355.5 L385.5 364.5 M385.5 355.5 L376.5 364.5"/>
+            <text class="chk-text" id="chk3Text" x="397" y="364">amount &lt; 100k</text>
+          </g>
+          <text class="gate-result" id="gateResult" x="372" y="400">→ transfer authorized</text>
         </g>
 
         <!-- after the gate so it paints on top while sliding into falcon_verify -->
@@ -234,18 +242,28 @@ const FLINK_BAD_OP=0.45;
 /* amber Falcon key chip stays put; a yellow signal ball travels to falcon_verify */
 const CHIP_HOME=[205,248];
 const BALL_FROM=CHIP_HOME.slice();          /* spawn from the chip center */
-const BALL_AT_VERIFY=[538,308];             /* just right of “falcon_verify( sig )” */
+const BALL_AT_VERIFY=[518,296];             /* slightly right in the paren gap (chk1 row) */
 
 const scenes=[
   {
     kicker:'FALCON VIA LOGICSIG',
-    title:'Falcon accounts are LogicSigs',
+    title:'Falcon accounts via LogicSigs',
     body:'Currently, Falcon Accounts are implemented using Algorand Logic Signatures — small, stateless TEAL programs that the network evaluates for transaction authorization. A simple program checks a Falcon signature attached to the transaction and allows the spend if that signature is valid.<br><br>Native Falcon is coming in Q3 2026, so LogicSigs won’t be required for standard Falcon accounts anymore — but they can still be utilized to enable “constrained Falcon accounts”.'
   },
   {
     kicker:'ADD AN ALLOWLIST',
     title:'Constrained Falcon: same signature, extra rule',
     body:'We can harden the LogicSig by extending it with another constraint dimension. In this case, the addition of a compiled allowlist. Falcon still verifies — <strong>and</strong> the recipient must be on the allowlist. Pay B: both checks pass. Pay C: Falcon can still sign, but C is not on the list — transfer not authorized.'
+  },
+  {
+    kicker:'ADD AN AMOUNT CAP',
+    title:'Constrained Falcon: cap the transfer size',
+    body:'Another constraint dimension is amount. Falcon still verifies — <strong>and</strong> the transfer amount must stay under a compiled cap (here, <strong>amount &lt; 100k</strong>). Pay 50k: both checks pass. Pay 250k: the signature can still be valid, but the amount check fails — transfer not authorized.'
+  },
+  {
+    kicker:'COMBINE CONSTRAINTS',
+    title:'Constraints can be combined',
+    body:'Allowlist and amount caps stack in the same LogicSig. Falcon still verifies — then <strong>recipient on allowlist</strong> and <strong>amount &lt; 100k</strong> must both pass.'
   }
 ];
 
@@ -300,46 +318,48 @@ async function moveBubble(g,x1,y1,x2,y2,dur){
   });
 }
 
-function prepGate(constrained){
-  $('chk1').classList.remove('done');
-  $('chk1').classList.remove('fail');
-  $('chk2').classList.remove('done');
-  $('chk2').classList.remove('fail');
-  $('gateResult').classList.remove('on');
-  $('gateResult').classList.remove('fail');
+function prepGate(mode){
+  /* mode: false | 'allow' | 'cap' | 'both'  — or truthy for secondary checks present */
+  $('chk1').classList.remove('done','fail');
+  $('chk2').classList.remove('done','fail');
+  $('chk3').classList.remove('done','fail');
+  $('gateResult').classList.remove('on','fail');
   $('gateResult').textContent='→ transfer authorized';
   $('flinkB').setAttribute('class','flink');
   $('flinkC').setAttribute('class','flink');
-  if(!constrained){
+  if(!mode){
     $('chk2').setAttribute('opacity','0');
     $('chk2').setAttribute('transform','translate(0,0)');
+    $('chk3').setAttribute('opacity','0');
+    $('chk3').setAttribute('transform','translate(0,0)');
   }
 }
 
-function setChk2Slide(u, opacity){
+function setChkSlide(id, u, opacity){
   /* u=0: off to the right of the gate; u=1: seated in the LogicSig */
   const dx=lerp(110,0,u);
-  $('chk2').setAttribute('transform',`translate(${dx.toFixed(1)},0)`);
-  $('chk2').setAttribute('opacity',Math.max(0,Math.min(1,opacity)).toFixed(3));
+  const e=$(id); if(!e) return;
+  e.setAttribute('transform',`translate(${dx.toFixed(1)},0)`);
+  e.setAttribute('opacity',Math.max(0,Math.min(1,opacity)).toFixed(3));
 }
+function setChk2Slide(u, opacity){ setChkSlide('chk2', u, opacity); }
+function setChk3Slide(u, opacity){ setChkSlide('chk3', u, opacity); }
 function setFalconChipHome(){
   $('falconChip').setAttribute('transform',`translate(${CHIP_HOME[0]},${CHIP_HOME[1]})`);
 }
 function makeAmberBall(x,y){
-  const g=mk('g',{class:'sig-ball',transform:`translate(${x},${y})`,opacity:'0.72'});
-  mk('circle',{
-    cx:0,cy:0,r:5.5,
-    fill:'var(--amber)',
-    stroke:'#f5c97a',
-    'stroke-width':'1',
-    opacity:'0.9'
+  /* small amber “sig” token that travels to falcon_verify */
+  const g=mk('g',{class:'sig-ball',transform:`translate(${x},${y})`,opacity:'0.88'});
+  const t=mk('text',{
+    x:0,y:4,
+    'text-anchor':'middle',
+    'font-family':"ui-monospace,'SF Mono',Menlo,Consolas,monospace",
+    'font-size':'12',
+    'font-weight':'600',
+    'letter-spacing':'0.06em',
+    fill:'#f0b45c'
   },g);
-  /* soft glow */
-  mk('circle',{
-    cx:0,cy:0,r:9,
-    fill:'var(--amber)',
-    opacity:'0.18'
-  },g);
+  t.textContent='sig';
   return g;
 }
 async function slideAmberBall(from,to,dur){
@@ -375,8 +395,26 @@ function setDualRecipients(on, opacity){
 
 /** Instant chrome for a settled scene (no transition). */
 function applyChrome(n){
-  const constrained=n>=1;
-  if(constrained){
+  if(n===0){
+    $('gateTitle').textContent='LOGIC SIG · CHECKED ON-CHAIN';
+    $('progChipText').textContent='Standard Falcon';
+    $('progChipRect').setAttribute('width','140');
+    $('progChipText').setAttribute('x','440');
+    $('chk2').setAttribute('opacity','0');
+    $('chk2').setAttribute('transform','translate(0,0)');
+    $('chk2Text').textContent='B is on the allowlist';
+    $('chk3').setAttribute('opacity','0');
+    $('chk3').setAttribute('transform','translate(0,0)');
+    setDualRecipients(false);
+    $('recvTitle').textContent='RECIPIENT';
+    $('recvSub').textContent='any address';
+    $('stageNote').textContent='FALCON ACCOUNT = LOGICSIG THAT VERIFIES FALCON-1024';
+    $('gateResult').setAttribute('y','390');
+    setFalconChipHome();
+    prepGate(false);
+    return;
+  }
+  if(n===1){
     $('gateTitle').textContent='A’S LOGICSIG · CHECKED ON-CHAIN';
     $('progChipText').textContent='Falcon + Allowlist';
     $('progChipRect').setAttribute('width','168');
@@ -384,68 +422,92 @@ function applyChrome(n){
     $('chk2').setAttribute('opacity','1');
     $('chk2').setAttribute('transform','translate(0,0)');
     $('chk2Text').textContent='B is on the allowlist';
+    $('chk3').setAttribute('opacity','0');
+    $('chk3').setAttribute('transform','translate(0,0)');
     setDualRecipients(true, 1);
     $('stageNote').textContent='CONSTRAINED FALCON = FALCON + COMPILED ALLOWLIST';
-    $('gateResult').setAttribute('y','398');
-  } else {
-    $('gateTitle').textContent='LOGIC SIG · CHECKED ON-CHAIN';
-    $('progChipText').textContent='Standard Falcon';
-    $('progChipRect').setAttribute('width','120');
-    $('progChipText').setAttribute('x','430');
-    $('chk2').setAttribute('opacity','0');
+    $('gateResult').setAttribute('y','400');
+    setFalconChipHome();
+    prepGate('allow');
+    return;
+  }
+  if(n===2){
+    /* amount cap — single recipient again */
+    $('gateTitle').textContent='A’S LOGICSIG · CHECKED ON-CHAIN';
+    $('progChipText').textContent='Falcon + Cap';
+    $('progChipRect').setAttribute('width','128');
+    $('progChipText').setAttribute('x','434');
+    $('chk2').setAttribute('opacity','1');
     $('chk2').setAttribute('transform','translate(0,0)');
-    $('chk2Text').textContent='B is on the allowlist';
+    $('chk2Text').textContent='amount < 100k';
+    $('chk3').setAttribute('opacity','0');
+    $('chk3').setAttribute('transform','translate(0,0)');
     setDualRecipients(false);
     $('recvTitle').textContent='RECIPIENT';
     $('recvSub').textContent='any address';
-    $('stageNote').textContent='FALCON ACCOUNT = LOGICSIG THAT VERIFIES FALCON-1024';
-    $('gateResult').setAttribute('y','390');
+    $('stageNote').textContent='CONSTRAINED FALCON = FALCON + AMOUNT CAP';
+    $('gateResult').setAttribute('y','400');
+    setFalconChipHome();
+    prepGate('cap');
+    return;
   }
+  /* n===3: combined allowlist + amount */
+  $('gateTitle').textContent='A’S LOGICSIG · CHECKED ON-CHAIN';
+  $('progChipText').textContent='Falcon + Allowlist + Cap';
+  $('progChipRect').setAttribute('width','200');
+  $('progChipText').setAttribute('x','470');
+  $('chk2').setAttribute('opacity','1');
+  $('chk2').setAttribute('transform','translate(0,0)');
+  $('chk2Text').textContent='B is on the allowlist';
+  $('chk3').setAttribute('opacity','1');
+  $('chk3').setAttribute('transform','translate(0,0)');
+  $('chk3Text').textContent='amount < 100k';
+  setDualRecipients(true, 1);
+  $('stageNote').textContent='CONSTRAINED FALCON = ALLOWLIST + AMOUNT CAP';
+  $('gateResult').setAttribute('y','400');
   setFalconChipHome();
-  prepGate(constrained);
+  prepGate('both');
 }
 
-/** Morph base Falcon → constrained (or reverse). */
-async function transitionChrome(toConstrained){
-  if(REDUCED){ applyChrome(toConstrained?1:0); return true; }
+/** Scene 0 → 1: allowlist dimension slides in. */
+async function transitionToAllowlist(){
+  if(REDUCED){ applyChrome(1); return true; }
+  const ok1=await tween(260,p=>{
+    const u=1-p;
+    $('progChip').setAttribute('opacity',u.toFixed(3));
+    $('focusRecv').setAttribute('opacity',u.toFixed(3));
+    $('flinkAny').setAttribute('opacity',(u*FLINK_OP).toFixed(3));
+    $('stageNote').setAttribute('opacity',u.toFixed(3));
+  });
+  if(!ok1) return false;
+  applyChrome(1);
+  $('chk2').classList.remove('done','fail');
+  setChk2Slide(0, 0);
+  setDualRecipients(true, 0);
+  $('progChip').setAttribute('opacity','0');
+  $('stageNote').setAttribute('opacity','0');
+  const ok2=await tween(400,p=>{
+    const o=ease(p);
+    $('progChip').setAttribute('opacity',o.toFixed(3));
+    $('stageNote').setAttribute('opacity',o.toFixed(3));
+    setDualRecipients(true, o);
+  });
+  if(!ok2) return false;
+  const ok3=await tween(720,p=>{
+    const e=ease(p);
+    setChk2Slide(e, Math.min(1, e*1.4));
+  });
+  if(!ok3) return false;
+  setChk2Slide(1, 1);
+  setDualRecipients(true, 1);
+  $('progChip').removeAttribute('opacity');
+  $('stageNote').removeAttribute('opacity');
+  return true;
+}
 
-  if(toConstrained){
-    /* 1) Fade generic recipient; swap chip + footnote */
-    const ok1=await tween(260,p=>{
-      const u=1-p;
-      $('progChip').setAttribute('opacity',u.toFixed(3));
-      $('focusRecv').setAttribute('opacity',u.toFixed(3));
-      $('flinkAny').setAttribute('opacity',(u*FLINK_OP).toFixed(3));
-      $('stageNote').setAttribute('opacity',u.toFixed(3));
-    });
-    if(!ok1) return false;
-    applyChrome(1);
-    $('chk2').classList.remove('done','fail');
-    setChk2Slide(0, 0);
-    setDualRecipients(true, 0);
-    $('progChip').setAttribute('opacity','0');
-    $('stageNote').setAttribute('opacity','0');
-    const ok2=await tween(400,p=>{
-      const o=ease(p);
-      $('progChip').setAttribute('opacity',o.toFixed(3));
-      $('stageNote').setAttribute('opacity',o.toFixed(3));
-      setDualRecipients(true, o);
-    });
-    if(!ok2) return false;
-    /* 2) Slide the allowlist check onto the LogicSig */
-    const ok3=await tween(720,p=>{
-      const e=ease(p);
-      setChk2Slide(e, Math.min(1, e*1.4));
-    });
-    if(!ok3) return false;
-    setChk2Slide(1, 1);
-    setDualRecipients(true, 1);
-    $('progChip').removeAttribute('opacity');
-    $('stageNote').removeAttribute('opacity');
-    return true;
-  }
-
-  /* reverse: slide allowlist check out, hide B/C, restore base Falcon */
+/** Scene 1 → 0 */
+async function transitionFromAllowlist(){
+  if(REDUCED){ applyChrome(0); return true; }
   setChk2Slide(1, 1);
   $('chk2').classList.remove('done','fail');
   const okOut=await tween(560,p=>{
@@ -474,6 +536,169 @@ async function transitionChrome(toConstrained){
     $('stageNote').setAttribute('opacity',u.toFixed(3));
   });
   if(!okIn) return false;
+  $('progChip').removeAttribute('opacity');
+  $('focusRecv').setAttribute('opacity','1');
+  $('flinkAny').setAttribute('opacity',String(FLINK_OP));
+  $('stageNote').removeAttribute('opacity');
+  return true;
+}
+
+/** Scene 1 → 2: hide B/C, restore single recipient, swap check to amount cap. */
+async function transitionToCap(){
+  if(REDUCED){ applyChrome(2); return true; }
+  /* slide allowlist check out with B/C */
+  setChk2Slide(1, 1);
+  $('chk2').classList.remove('done','fail');
+  const okOut=await tween(520,p=>{
+    const e=ease(p);
+    setChk2Slide(1-e, 1-e);
+    setDualRecipients(true, 1-e);
+    $('progChip').setAttribute('opacity',(1-e).toFixed(3));
+    $('stageNote').setAttribute('opacity',(1-e).toFixed(3));
+  });
+  if(!okOut) return false;
+  applyChrome(2);
+  $('chk2').classList.remove('done','fail');
+  setChk2Slide(0, 0);
+  $('progChip').setAttribute('opacity','0');
+  $('focusRecv').setAttribute('opacity','0');
+  $('flinkAny').setAttribute('opacity','0');
+  $('stageNote').setAttribute('opacity','0');
+  const okIn=await tween(380,p=>{
+    const u=ease(p);
+    $('progChip').setAttribute('opacity',u.toFixed(3));
+    $('focusRecv').setAttribute('opacity',u.toFixed(3));
+    $('flinkAny').setAttribute('opacity',(u*FLINK_OP).toFixed(3));
+    $('stageNote').setAttribute('opacity',u.toFixed(3));
+  });
+  if(!okIn) return false;
+  const okSlide=await tween(720,p=>{
+    const e=ease(p);
+    setChk2Slide(e, Math.min(1, e*1.4));
+  });
+  if(!okSlide) return false;
+  setChk2Slide(1, 1);
+  $('progChip').removeAttribute('opacity');
+  $('focusRecv').setAttribute('opacity','1');
+  $('flinkAny').setAttribute('opacity',String(FLINK_OP));
+  $('stageNote').removeAttribute('opacity');
+  return true;
+}
+
+/** Scene 2 → 1 */
+async function transitionFromCap(){
+  if(REDUCED){ applyChrome(1); return true; }
+  setChk2Slide(1, 1);
+  $('chk2').classList.remove('done','fail');
+  const okOut=await tween(480,p=>{
+    const e=ease(p);
+    setChk2Slide(1-e, 1-e);
+    $('progChip').setAttribute('opacity',(1-e).toFixed(3));
+    $('focusRecv').setAttribute('opacity',(1-e).toFixed(3));
+    $('flinkAny').setAttribute('opacity',((1-e)*FLINK_OP).toFixed(3));
+    $('stageNote').setAttribute('opacity',(1-e).toFixed(3));
+  });
+  if(!okOut) return false;
+  applyChrome(1);
+  setChk2Slide(0, 0);
+  setDualRecipients(true, 0);
+  $('progChip').setAttribute('opacity','0');
+  $('stageNote').setAttribute('opacity','0');
+  const okIn=await tween(400,p=>{
+    const o=ease(p);
+    $('progChip').setAttribute('opacity',o.toFixed(3));
+    $('stageNote').setAttribute('opacity',o.toFixed(3));
+    setDualRecipients(true, o);
+  });
+  if(!okIn) return false;
+  const okSlide=await tween(720,p=>{
+    const e=ease(p);
+    setChk2Slide(e, Math.min(1, e*1.4));
+  });
+  if(!okSlide) return false;
+  setChk2Slide(1, 1);
+  setDualRecipients(true, 1);
+  $('progChip').removeAttribute('opacity');
+  $('stageNote').removeAttribute('opacity');
+  return true;
+}
+
+/** Scene 2 → 3: dual recipients + allowlist check + amount check */
+async function transitionToCombined(){
+  if(REDUCED){ applyChrome(3); return true; }
+  $('chk2').classList.remove('done','fail');
+  $('chk3').classList.remove('done','fail');
+  const okOut=await tween(360,p=>{
+    const e=ease(p);
+    $('progChip').setAttribute('opacity',(1-e).toFixed(3));
+    $('focusRecv').setAttribute('opacity',(1-e).toFixed(3));
+    $('flinkAny').setAttribute('opacity',((1-e)*FLINK_OP).toFixed(3));
+    $('stageNote').setAttribute('opacity',(1-e).toFixed(3));
+    setChk2Slide(1-e, 1-e);
+  });
+  if(!okOut) return false;
+  applyChrome(3);
+  setDualRecipients(true, 0);
+  setChk2Slide(0, 0);
+  setChk3Slide(0, 0);
+  $('progChip').setAttribute('opacity','0');
+  $('stageNote').setAttribute('opacity','0');
+  const okIn=await tween(400,p=>{
+    const o=ease(p);
+    $('progChip').setAttribute('opacity',o.toFixed(3));
+    $('stageNote').setAttribute('opacity',o.toFixed(3));
+    setDualRecipients(true, o);
+  });
+  if(!okIn) return false;
+  const okSlide=await tween(800,p=>{
+    const e=ease(p);
+    setChk2Slide(e, Math.min(1, e*1.4));
+    setChk3Slide(Math.max(0, (e-0.15)/0.85), Math.min(1, Math.max(0,(e-0.15)/0.85)*1.4));
+  });
+  if(!okSlide) return false;
+  setChk2Slide(1, 1);
+  setChk3Slide(1, 1);
+  setDualRecipients(true, 1);
+  $('progChip').removeAttribute('opacity');
+  $('stageNote').removeAttribute('opacity');
+  return true;
+}
+
+/** Scene 3 → 2 */
+async function transitionFromCombined(){
+  if(REDUCED){ applyChrome(2); return true; }
+  $('chk2').classList.remove('done','fail');
+  $('chk3').classList.remove('done','fail');
+  const okOut=await tween(520,p=>{
+    const e=ease(p);
+    setChk2Slide(1-e, 1-e);
+    setChk3Slide(1-e, 1-e);
+    setDualRecipients(true, 1-e);
+    $('progChip').setAttribute('opacity',(1-e).toFixed(3));
+    $('stageNote').setAttribute('opacity',(1-e).toFixed(3));
+  });
+  if(!okOut) return false;
+  applyChrome(2);
+  setChk2Slide(0, 0);
+  $('chk3').setAttribute('opacity','0');
+  $('progChip').setAttribute('opacity','0');
+  $('focusRecv').setAttribute('opacity','0');
+  $('flinkAny').setAttribute('opacity','0');
+  $('stageNote').setAttribute('opacity','0');
+  const okIn=await tween(360,p=>{
+    const u=ease(p);
+    $('progChip').setAttribute('opacity',u.toFixed(3));
+    $('focusRecv').setAttribute('opacity',u.toFixed(3));
+    $('flinkAny').setAttribute('opacity',(u*FLINK_OP).toFixed(3));
+    $('stageNote').setAttribute('opacity',u.toFixed(3));
+  });
+  if(!okIn) return false;
+  const okSlide=await tween(640,p=>{
+    const e=ease(p);
+    setChk2Slide(e, Math.min(1, e*1.4));
+  });
+  if(!okSlide) return false;
+  setChk2Slide(1, 1);
   $('progChip').removeAttribute('opacity');
   $('focusRecv').setAttribute('opacity','1');
   $('flinkAny').setAttribute('opacity',String(FLINK_OP));
@@ -534,11 +759,9 @@ async function loopConstrained(){
     if(!await fadeTo(bub,1,260)){ bub.remove(); return; }
     bub.classList.add('staged');
     if(!await sleep(360)){ bub.remove(); return; }
-    /* yellow signal: still FALCON-1024 KEY chip → falcon_verify (same as scene 1) */
     const ball=await slideAmberBall(BALL_FROM, BALL_AT_VERIFY, 700);
     if(!ball){ bub.remove(); return; }
     if(!await sleep(220)){ ball.remove(); bub.remove(); return; }
-    /* Falcon still verifies either way */
     $('chk1').classList.add('done');
     if(!await sleep(700)){ ball.remove(); bub.remove(); return; }
     if(turn.ok){
@@ -563,7 +786,6 @@ async function loopConstrained(){
       $('gateResult').textContent='→ transfer not authorized';
       $('gateResult').classList.add('fail');
       if(!await sleep(500)){ ball.remove(); bub.remove(); return; }
-      /* rejected — bubble dies at the gate, never reaches C */
       bub.classList.remove('staged');
       if(!await fadeTo(ball,0,280)){ ball.remove(); bub.remove(); return; }
       ball.remove();
@@ -578,13 +800,171 @@ async function loopConstrained(){
   }
 }
 
+async function loopCap(){
+  const t=token;
+  const turns=[
+    { ok:true,  label:'pay 50k',  chk:'amount < 100k', failText:null },
+    { ok:false, label:'pay 250k', chk:'amount < 100k', failText:'amount ≥ 100k' }
+  ];
+  let i=0;
+  while(t.alive){
+    const turn=turns[i%2];
+    prepGate(true);
+    $('chk2').setAttribute('opacity','1');
+    $('chk2').setAttribute('transform','translate(0,0)');
+    $('chk2Text').textContent=turn.chk;
+    setFalconChipHome();
+    flash('focusA');
+    const bub=makeBubble(turn.label,668,315,!turn.ok);
+    if(!await fadeTo(bub,1,260)){ bub.remove(); return; }
+    bub.classList.add('staged');
+    if(!await sleep(360)){ bub.remove(); return; }
+    const ball=await slideAmberBall(BALL_FROM, BALL_AT_VERIFY, 700);
+    if(!ball){ bub.remove(); return; }
+    if(!await sleep(220)){ ball.remove(); bub.remove(); return; }
+    $('chk1').classList.add('done');
+    if(!await sleep(700)){ ball.remove(); bub.remove(); return; }
+    if(turn.ok){
+      $('chk2').classList.add('done');
+      if(!await sleep(640)){ ball.remove(); bub.remove(); return; }
+      $('gateResult').textContent='→ transfer authorized';
+      $('gateResult').classList.add('on');
+      if(!await sleep(420)){ ball.remove(); bub.remove(); return; }
+      bub.classList.remove('staged');
+      if(!await fadeTo(ball,0,280)){ ball.remove(); bub.remove(); return; }
+      ball.remove();
+      if(!await moveBubble(bub,668,315,890,315,1400)){ bub.remove(); return; }
+      bub.remove();
+      flash('focusRecv');
+      mark(995,257,true);
+    } else {
+      if(turn.failText) $('chk2Text').textContent=turn.failText;
+      $('chk2').classList.add('fail');
+      if(!await sleep(640)){ ball.remove(); bub.remove(); return; }
+      $('gateResult').textContent='→ transfer not authorized';
+      $('gateResult').classList.add('fail');
+      if(!await sleep(500)){ ball.remove(); bub.remove(); return; }
+      bub.classList.remove('staged');
+      if(!await fadeTo(ball,0,280)){ ball.remove(); bub.remove(); return; }
+      ball.remove();
+      if(!await moveBubble(bub,668,315,790,315,900)){ bub.remove(); return; }
+      mark(790,315,false);
+      flash('focusRecv');
+      if(!await sleep(280)){ bub.remove(); return; }
+      bub.remove();
+    }
+    if(!await sleep(1600)) return;
+    i++;
+  }
+}
+
+async function loopCombined(){
+  const t=token;
+  /* four cases: recipient B|C × amount under|over cap */
+  const turns=[
+    { ok:true,  who:'B', node:'focusB', cy:230, label:'pay B 50k',  allowOk:true,  amtOk:true  },
+    { ok:false, who:'B', node:'focusB', cy:230, label:'pay B 250k', allowOk:true,  amtOk:false },
+    { ok:false, who:'C', node:'focusC', cy:400, label:'pay C 50k',  allowOk:false, amtOk:true  },
+    { ok:false, who:'C', node:'focusC', cy:400, label:'pay C 250k', allowOk:false, amtOk:false }
+  ];
+  let i=0;
+  while(t.alive){
+    const turn=turns[i%4];
+    prepGate('both');
+    $('chk2').setAttribute('opacity','1');
+    $('chk2').setAttribute('transform','translate(0,0)');
+    $('chk3').setAttribute('opacity','1');
+    $('chk3').setAttribute('transform','translate(0,0)');
+    $('chk2Text').textContent=turn.who+' is on the allowlist';
+    $('chk3Text').textContent='amount < 100k';
+    $('flinkB').setAttribute('class','flink');
+    $('flinkC').setAttribute('class','flink');
+    $('flinkB').setAttribute('opacity',String(FLINK_OP));
+    $('flinkC').setAttribute('opacity',String(FLINK_OP));
+    setFalconChipHome();
+    flash('focusA');
+    const bub=makeBubble(turn.label,668,315,!turn.ok);
+    if(!await fadeTo(bub,1,240)){ bub.remove(); return; }
+    bub.classList.add('staged');
+    if(!await sleep(320)){ bub.remove(); return; }
+    const ball=await slideAmberBall(BALL_FROM, BALL_AT_VERIFY, 700);
+    if(!ball){ bub.remove(); return; }
+    if(!await sleep(200)){ ball.remove(); bub.remove(); return; }
+    $('chk1').classList.add('done');
+    if(!await sleep(600)){ ball.remove(); bub.remove(); return; }
+
+    if(turn.allowOk){
+      $('chk2').classList.add('done');
+    } else {
+      $('chk2Text').textContent=turn.who+' is not on the allowlist';
+      $('chk2').classList.add('fail');
+      $('flinkC').setAttribute('class','flink-bad');
+      $('flinkC').setAttribute('opacity',String(FLINK_BAD_OP));
+    }
+    if(!await sleep(560)){ ball.remove(); bub.remove(); return; }
+
+    /* amount only decisive if allowlist passed; still show the check either way */
+    if(turn.allowOk && turn.amtOk){
+      $('chk3').classList.add('done');
+    } else if(turn.allowOk && !turn.amtOk){
+      $('chk3Text').textContent='amount ≥ 100k';
+      $('chk3').classList.add('fail');
+    } else if(!turn.allowOk && turn.amtOk){
+      $('chk3').classList.add('done'); /* amount would have passed */
+    } else {
+      $('chk3Text').textContent='amount ≥ 100k';
+      $('chk3').classList.add('fail');
+    }
+    if(!await sleep(560)){ ball.remove(); bub.remove(); return; }
+
+    if(turn.ok){
+      $('gateResult').textContent='→ transfer authorized';
+      $('gateResult').classList.add('on');
+      if(!await sleep(380)){ ball.remove(); bub.remove(); return; }
+      bub.classList.remove('staged');
+      if(!await fadeTo(ball,0,240)){ ball.remove(); bub.remove(); return; }
+      ball.remove();
+      if(!await moveBubble(bub,668,315,890,turn.cy,1300)){ bub.remove(); return; }
+      bub.remove();
+      flash(turn.node);
+      mark(995, turn.cy-58, true);
+    } else {
+      $('gateResult').textContent='→ transfer not authorized';
+      $('gateResult').classList.add('fail');
+      if(!await sleep(400)){ ball.remove(); bub.remove(); return; }
+      bub.classList.remove('staged');
+      if(!await fadeTo(ball,0,240)){ ball.remove(); bub.remove(); return; }
+      ball.remove();
+      if(!await moveBubble(bub,668,315,790, turn.allowOk?315:360, 900)){ bub.remove(); return; }
+      mark(790, turn.allowOk?315:360, false);
+      flash(turn.node);
+      if(!await sleep(260)){ bub.remove(); return; }
+      bub.remove();
+    }
+    if(!await sleep(1400)) return;
+    i++;
+  }
+}
+
 function staticFrame(n){
   applyChrome(n);
   $('chk1').classList.add('done');
-  if(n>=1){
+  if(n===1){
     $('chk2').setAttribute('opacity','1');
     $('chk2').classList.add('done');
     $('chk2Text').textContent='B is on the allowlist';
+    mark(995,172,true);
+    mark(995,342,false);
+  } else if(n===2){
+    $('chk2').setAttribute('opacity','1');
+    $('chk2').classList.add('done');
+    $('chk2Text').textContent='amount < 100k';
+    mark(995,257,true);
+  } else if(n===3){
+    $('chk2').setAttribute('opacity','1');
+    $('chk3').setAttribute('opacity','1');
+    $('chk2').classList.add('done');
+    $('chk3').classList.add('done');
     mark(995,172,true);
     mark(995,342,false);
   } else {
@@ -597,6 +977,8 @@ function runLoop(n){
   if(REDUCED){ staticFrame(n); return; }
   if(n===0) loopFalconBase();
   else if(n===1) loopConstrained();
+  else if(n===2) loopCap();
+  else if(n===3) loopCombined();
 }
 
 let current=-1, busy=false;
@@ -629,9 +1011,37 @@ async function setScene(n){
   if(first){
     applyChrome(0);
   } else if(n===1 && prev===0){
-    ok=await transitionChrome(true);
+    ok=await transitionToAllowlist();
   } else if(n===0 && prev===1){
-    ok=await transitionChrome(false);
+    ok=await transitionFromAllowlist();
+  } else if(n===2 && prev===1){
+    ok=await transitionToCap();
+  } else if(n===1 && prev===2){
+    ok=await transitionFromCap();
+  } else if(n===3 && prev===2){
+    ok=await transitionToCombined();
+  } else if(n===2 && prev===3){
+    ok=await transitionFromCombined();
+  } else if(n===3 && prev===1){
+    ok=await transitionToCap();
+    if(ok) ok=await transitionToCombined();
+  } else if(n===1 && prev===3){
+    ok=await transitionFromCombined();
+    if(ok) ok=await transitionFromCap();
+  } else if(n===2 && prev===0){
+    ok=await transitionToAllowlist();
+    if(ok) ok=await transitionToCap();
+  } else if(n===0 && prev===2){
+    ok=await transitionFromCap();
+    if(ok) ok=await transitionFromAllowlist();
+  } else if(n===3 && prev===0){
+    ok=await transitionToAllowlist();
+    if(ok) ok=await transitionToCap();
+    if(ok) ok=await transitionToCombined();
+  } else if(n===0 && prev===3){
+    ok=await transitionFromCombined();
+    if(ok) ok=await transitionFromCap();
+    if(ok) ok=await transitionFromAllowlist();
   } else {
     applyChrome(n);
   }
