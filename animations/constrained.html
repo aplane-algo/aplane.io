@@ -18,7 +18,7 @@
   --page-faint:#5b5f66; --page-border:#d7dacd; --ink-teal:#0a7d6b;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{color-scheme:dark}
+html{color-scheme:light}
 body{
   background:var(--page-bg);
   color:var(--page-ink); font-family:var(--sans); min-height:100vh; -webkit-font-smoothing:antialiased;
@@ -123,7 +123,7 @@ text{user-select:none}
 <main class="wrap">
   <div class="stage-frame">
     <svg id="stage" viewBox="0 0 1200 640" role="img"
-         aria-label="Falcon accounts as LogicSigs, then constrained with an allowlist check">
+         aria-label="Falcon accounts as LogicSigs, then constrained with allowlist and amount-cap checks">
       <defs>
         <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
           <path class="grid-line" d="M44 0H0V44" fill="none"/>
@@ -218,7 +218,7 @@ text{user-select:none}
 
   <nav class="controls" aria-label="Scene controls">
     <button class="ctl-btn" id="btnPrev">‹ Back</button>
-    <span class="counter" id="counter">01 / 02</span>
+    <span class="counter" id="counter">01 / 04</span>
     <button class="ctl-btn" id="btnNext">Next ›</button>
     <button class="ctl-btn" id="btnReplay">Replay</button>
   </nav>
@@ -281,13 +281,13 @@ function mk(name,attrs,parent){
 }
 function flash(id,ms=1000){ const e=$(id); if(!e) return; e.classList.add('lit'); setTimeout(()=>e.classList.remove('lit'),ms); }
 function mark(x,y,ok=true){
-  if(REDUCED) return;
+  /* reduced motion: static badge (no pop animation), kept until fx is cleared */
   const pos2=mk('g',{transform:`translate(${x},${y})`});
-  const g=mk('g',{class:'mark '+(ok?'mark-ok':'mark-no')},pos2);
+  const g=mk('g',{class:(REDUCED?'':'mark ')+(ok?'mark-ok':'mark-no')},pos2);
   mk('circle',{cx:0,cy:0,r:13},g);
   if(ok) mk('path',{d:'M-5.5 0 l3.7 4.1 l7.2 -8.3'},g);
   else { mk('path',{d:'M-5 -5 L5 5'},g); mk('path',{d:'M5 -5 L-5 5'},g); }
-  setTimeout(()=>pos2.remove(),2000);
+  if(!REDUCED) setTimeout(()=>pos2.remove(),2000);
 }
 function makeBubble(label,x,y,bad=false){
   const g=mk('g',{class:'pkt'+(bad?' bad':''),transform:`translate(${x},${y})`,opacity:'0'});
@@ -925,9 +925,10 @@ async function loopCombined(){
       bub.classList.remove('staged');
       if(!await fadeTo(ball,0,240)){ ball.remove(); bub.remove(); return; }
       ball.remove();
-      /* partial path toward the intended recipient (B top / C bottom) — not horizontal mid */
-      if(!await moveBubble(bub,668,315,790,turn.cy,900)){ bub.remove(); return; }
-      mark(790,turn.cy,false);
+      /* partial path toward the intended recipient, staying on the link line */
+      const failY=Math.round(315+(turn.cy-315)*(790-645)/(890-645));
+      if(!await moveBubble(bub,668,315,790,failY,900)){ bub.remove(); return; }
+      mark(790,failY,false);
       flash(turn.node);
       if(!await sleep(260)){ bub.remove(); return; }
       bub.remove();
