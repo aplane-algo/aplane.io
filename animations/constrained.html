@@ -258,7 +258,7 @@ const scenes=[
   {
     kicker:'ADD AN AMOUNT CAP',
     title:'Constrained Falcon: cap the transfer size',
-    body:'Another constraint dimension is amount. Falcon still verifies — <strong>and</strong> the transfer amount must stay under a compiled cap (here, <strong>amount &lt; 100k</strong>). Pay 50k: both checks pass. Pay 250k: the signature can still be valid, but the amount check fails — transfer not authorized.'
+    body:'Another constraint dimension is amount. Falcon still verifies — <strong>and</strong> the transfer amount must stay under a compiled cap (here, <strong>amount &lt; 100k</strong>). Pay 500: both checks pass. Pay 250k: the signature can still be valid, but the amount check fails — transfer not authorized.'
   },
   {
     kicker:'COMBINE CONSTRAINTS',
@@ -803,7 +803,7 @@ async function loopConstrained(){
 async function loopCap(){
   const t=token;
   const turns=[
-    { ok:true,  label:'pay 50k',  chk:'amount < 100k', failText:null },
+    { ok:true,  label:'pay 500',  chk:'amount < 100k', failText:null },
     { ok:false, label:'pay 250k', chk:'amount < 100k', failText:'amount ≥ 100k' }
   ];
   let i=0;
@@ -862,9 +862,9 @@ async function loopCombined(){
   const t=token;
   /* four cases: recipient B|C × amount under|over cap */
   const turns=[
-    { ok:true,  who:'B', node:'focusB', cy:230, label:'pay B 50k',  allowOk:true,  amtOk:true  },
+    { ok:true,  who:'B', node:'focusB', cy:230, label:'pay B 500',  allowOk:true,  amtOk:true  },
     { ok:false, who:'B', node:'focusB', cy:230, label:'pay B 250k', allowOk:true,  amtOk:false },
-    { ok:false, who:'C', node:'focusC', cy:400, label:'pay C 50k',  allowOk:false, amtOk:true  },
+    { ok:false, who:'C', node:'focusC', cy:400, label:'pay C 500',  allowOk:false, amtOk:true  },
     { ok:false, who:'C', node:'focusC', cy:400, label:'pay C 250k', allowOk:false, amtOk:false }
   ];
   let i=0;
@@ -935,8 +935,9 @@ async function loopCombined(){
       bub.classList.remove('staged');
       if(!await fadeTo(ball,0,240)){ ball.remove(); bub.remove(); return; }
       ball.remove();
-      if(!await moveBubble(bub,668,315,790, turn.allowOk?315:360, 900)){ bub.remove(); return; }
-      mark(790, turn.allowOk?315:360, false);
+      /* partial path toward the intended recipient (B top / C bottom) — not horizontal mid */
+      if(!await moveBubble(bub,668,315,790,turn.cy,900)){ bub.remove(); return; }
+      mark(790,turn.cy,false);
       flash(turn.node);
       if(!await sleep(260)){ bub.remove(); return; }
       bub.remove();
