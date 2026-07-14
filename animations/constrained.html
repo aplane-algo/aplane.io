@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constrained Falcon Accounts</title>
+<style>
+:root{
+  --bg:#0a0f1d; --bg-high:#101a33; --panel:#131b2f; --panel-deep:#0e1526;
+  --line:#26324e; --line-soft:#1a2440;
+  --ink:#e9eef8; --muted:#8a94ac; --faint:#5a6480;
+  --amber:#f0b45c; --amber-dim:rgba(240,180,92,.14);
+  --teal:#4fe0c4; --teal-dim:rgba(79,224,196,.13);
+  --red:#f26b6b; --red-dim:rgba(242,107,107,.12);
+  --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --page-bg:#f6f7f2; --page-ink:#111111; --page-muted:#5b5f66;
+  --page-faint:#5b5f66; --page-border:#d7dacd; --ink-teal:#0a7d6b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:dark}
+body{
+  background:var(--page-bg);
+  color:var(--page-ink); font-family:var(--sans); min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink-teal);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+header{padding:44px 0 10px;text-align:center}
+.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.24em;color:var(--ink-teal);text-transform:uppercase;text-decoration:none}
+a.eyebrow:hover{text-decoration:underline;text-underline-offset:3px}
+.eyebrow .sep{color:var(--page-faint);margin:0 .5em}
+h1{font-weight:600;font-size:clamp(26px,4vw,40px);letter-spacing:-.015em;margin-top:10px;text-wrap:balance}
+.sub{color:var(--page-muted);max-width:62ch;margin:10px auto 0;text-wrap:balance}
+
+.stage-frame{
+  margin-top:26px;border:1px solid #cdd0c6;border-radius:16px;overflow:hidden;
+  background:radial-gradient(900px 420px at 50% -10%, #101a33, #0a0f1d 72%);
+  box-shadow:0 1px 3px rgba(17,17,17,.08);
+}
+svg#stage{display:block;width:100%;height:auto}
+text{user-select:none}
+.grid-line{stroke:#121a30;stroke-width:1}
+
+.node-box{fill:var(--panel);stroke:var(--line);stroke-width:1.25}
+.node-title{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.14em;fill:var(--ink)}
+.node-sub{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.node-dot{fill:var(--teal)}
+.node.lit .node-box{stroke:var(--teal);filter:drop-shadow(0 0 12px rgba(79,224,196,.4))}
+
+/* opacity is attribute-driven (CSS opacity would override setAttribute) */
+.flink{stroke:var(--teal);stroke-width:1.8;fill:none}
+.attach{stroke:#5a6a86;stroke-width:7;stroke-linecap:round;fill:none}
+.gate-box{fill:var(--panel-deep);stroke:rgba(79,224,196,.45);stroke-width:1.2}
+.gate-title{font-family:var(--mono);font-weight:600;font-size:10.5px;letter-spacing:.1em;fill:var(--muted)}
+.stage-footnote{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.12em;fill:var(--faint)}
+.chk circle{fill:none;stroke:var(--line);stroke-width:1.3}
+.chk.done circle{stroke:var(--teal);fill:var(--teal-dim)}
+.chk.fail circle{stroke:var(--red);fill:var(--red-dim)}
+.chk .tick,.chk .cross{stroke-width:1.8;fill:none;opacity:0}
+.chk .tick{stroke:var(--teal)}
+.chk .cross{stroke:var(--red)}
+.chk.done .tick{opacity:1}
+.chk.fail .cross{opacity:1}
+.chk-text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.chk.done .chk-text{fill:var(--ink)}
+.chk.fail .chk-text{fill:var(--red)}
+.gate-result{font-family:var(--mono);font-weight:600;font-size:12px;fill:var(--faint);opacity:.55}
+.gate-result.on{fill:var(--teal);opacity:1}
+.gate-result.fail{fill:var(--red);opacity:1}
+.flink-bad{stroke:var(--red);stroke-width:1.8;fill:none;stroke-dasharray:6 6}
+.chip rect{stroke-width:1}
+.chip.amber rect{fill:var(--amber-dim);stroke:var(--amber)}
+.chip.teal rect{fill:var(--teal-dim);stroke:var(--teal)}
+.chip text{font-family:var(--mono);font-size:10px;letter-spacing:.05em}
+.chip.amber text{fill:var(--amber)}
+.chip.teal text{fill:var(--teal)}
+
+.pkt-box{fill:#0f2420;stroke:var(--teal);stroke-width:1}
+.pkt text{font-family:var(--mono);font-size:11px;fill:var(--teal)}
+.pkt.bad .pkt-box{stroke:var(--red);fill:#231524}
+.pkt.bad text{fill:var(--red)}
+.pkt.staged{animation:pktpulse 1.15s ease-in-out infinite}
+@keyframes pktpulse{0%,100%{opacity:.7}50%{opacity:1}}
+
+.mark{transform-box:fill-box;transform-origin:center}
+.mark-ok circle{fill:var(--teal-dim);stroke:var(--teal);stroke-width:1.4}
+.mark-ok path{stroke:var(--teal);stroke-width:2;fill:none}
+.mark-no circle{fill:var(--red-dim);stroke:var(--red);stroke-width:1.4}
+.mark-no path{stroke:var(--red);stroke-width:2;fill:none}
+.mark{animation:markpop 1.9s ease forwards}
+@keyframes markpop{0%{opacity:0;transform:scale(.4)}9%{opacity:1;transform:scale(1)}82%{opacity:1}100%{opacity:0}}
+
+.caption{min-height:150px;padding:20px 8px 4px;display:flex;justify-content:center}
+.caption-inner{max-width:66ch;text-align:center}
+.caption-inner.swap{animation:capin .5s ease}
+@keyframes capin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kicker{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.22em;color:var(--ink-teal)}
+.caption h2{font-weight:600;font-size:clamp(19px,2.6vw,25px);margin:8px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.caption p{color:var(--page-muted);font-size:15.5px}
+.caption p strong{font-weight:600;color:var(--page-ink)}
+
+.controls{display:flex;align-items:center;justify-content:center;gap:14px;padding:8px 0 8px;flex-wrap:wrap}
+.ctl-btn{
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--page-ink);
+  border:1px solid var(--page-border);border-radius:8px;padding:9px 16px;background:#ffffff;
+  transition:border-color .2s, background .2s;
+}
+.ctl-btn:hover{border-color:var(--ink-teal);background:#eef0ea}
+.ctl-btn[disabled]{opacity:.55;pointer-events:none}
+.counter{font-family:var(--mono);font-size:12px;color:var(--page-faint);letter-spacing:.12em;font-variant-numeric:tabular-nums}
+
+footer{text-align:center;color:var(--page-faint);font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:22px 24px 40px;line-height:2}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <a class="eyebrow" href="https://github.com/aplane-algo/aplane">aPlane</a>
+  <h1>Constrained Falcon Accounts</h1>
+  <p class="sub">Falcon LogicSigs can be extended with constraints to define hard destination sets, cap transfer amounts, etc.</p>
+</header>
+
+<main class="wrap">
+  <div class="stage-frame">
+    <svg id="stage" viewBox="0 0 1200 640" role="img"
+         aria-label="Falcon accounts as LogicSigs, then constrained with an allowlist check">
+      <defs>
+        <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+          <path class="grid-line" d="M44 0H0V44" fill="none"/>
+        </pattern>
+      </defs>
+      <rect width="1200" height="640" fill="var(--bg)"/>
+      <rect width="1200" height="640" fill="url(#grid)" opacity="0.5"/>
+
+      <g id="stageRoot">
+        <line class="attach" x1="310" y1="315" x2="355" y2="315"/>
+        <line class="flink" id="flinkAny" x1="645" y1="315" x2="890" y2="315" opacity="0.55"/>
+        <line class="flink" id="flinkD" x1="645" y1="315" x2="890" y2="230" opacity="0"/>
+        <line class="flink" id="flinkE" x1="645" y1="315" x2="890" y2="400" opacity="0"/>
+
+        <g class="node" id="focusA" transform="translate(205,315)">
+          <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-15" r="4"/>
+          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT A</text>
+          <text class="node-sub" x="0" y="17" text-anchor="middle">R4XK...Q3TZ</text>
+        </g>
+
+        <g id="gate">
+          <rect class="gate-box" id="gateBox" x="355" y="210" width="290" height="210" rx="12"/>
+          <text class="gate-title" id="gateTitle" x="372" y="236">LOGIC SIG · CHECKED ON-CHAIN</text>
+          <g class="chip teal" id="progChip">
+            <rect id="progChipRect" x="370" y="252" width="120" height="22" rx="7"/>
+            <text id="progChipText" x="430" y="267" text-anchor="middle">Pure Falcon</text>
+          </g>
+          <g class="chk" id="chk1">
+            <circle cx="381" cy="308" r="7"/>
+            <path class="tick" d="M377.5 308 l2.6 2.9 l4.8 -5.6"/>
+            <text class="chk-text" x="397" y="312">falcon_verify( sig )</text>
+          </g>
+          <g class="chk" id="chk2" opacity="0" transform="translate(0,0)">
+            <circle cx="381" cy="342" r="7"/>
+            <path class="tick" d="M377.5 342 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M376.5 337.5 L385.5 346.5 M385.5 337.5 L376.5 346.5"/>
+            <text class="chk-text" id="chk2Text" x="397" y="346">D is on the allowlist</text>
+          </g>
+          <text class="gate-result" id="gateResult" x="372" y="390">→ transfer authorized</text>
+        </g>
+
+        <!-- after the gate so it paints on top while sliding into falcon_verify -->
+        <g class="chip amber" id="falconChip" transform="translate(205,248)">
+          <rect x="-70" y="-11" width="140" height="22" rx="7"/>
+          <text x="0" y="4" text-anchor="middle">FALCON-1024 KEY</text>
+        </g>
+
+        <g class="node" id="focusRecv" transform="translate(995,315)">
+          <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-15" r="4"/>
+          <text class="node-title" id="recvTitle" x="0" y="-6" text-anchor="middle">RECIPIENT</text>
+          <text class="node-sub" id="recvSub" x="0" y="17" text-anchor="middle">any address</text>
+        </g>
+        <g class="node" id="focusD" transform="translate(995,230)" opacity="0">
+          <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-15" r="4"/>
+          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT D</text>
+          <text class="node-sub" x="0" y="17" text-anchor="middle">in A’s allowlist</text>
+        </g>
+        <g class="node" id="focusE" transform="translate(995,400)" opacity="0">
+          <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-15" r="4"/>
+          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT E</text>
+          <text class="node-sub" x="0" y="17" text-anchor="middle">not in allowlist</text>
+        </g>
+
+        <text class="stage-footnote" id="stageNote" x="600" y="530" text-anchor="middle">
+          FALCON ACCOUNT = LOGICSIG THAT VERIFIES FALCON-1024
+        </text>
+      </g>
+
+      <g id="fx"></g>
+    </svg>
+  </div>
+
+  <section class="caption" aria-live="polite">
+    <div class="caption-inner" id="capInner">
+      <div class="kicker" id="capKicker"></div>
+      <h2 id="capTitle"></h2>
+      <p id="capBody"></p>
+    </div>
+  </section>
+
+  <nav class="controls" aria-label="Scene controls">
+    <button class="ctl-btn" id="btnPrev">‹ Back</button>
+    <span class="counter" id="counter">01 / 02</span>
+    <button class="ctl-btn" id="btnNext">Next ›</button>
+    <button class="ctl-btn" id="btnReplay">Replay</button>
+  </nav>
+</main>
+
+<footer>
+  constrained falcon · logicsig authorization · protocol-enforced
+</footer>
+
+<script>
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+const fx=$('fx');
+/* peak flink translucency — must not live in CSS (would override attributes) */
+const FLINK_OP=0.55;
+const FLINK_BAD_OP=0.45;
+/* amber Falcon key chip stays put; a yellow signal ball travels to falcon_verify */
+const CHIP_HOME=[205,248];
+const BALL_FROM=CHIP_HOME.slice();          /* spawn from the chip center */
+const BALL_AT_VERIFY=[538,308];             /* just right of “falcon_verify( sig )” */
+
+const scenes=[
+  {
+    kicker:'FALCON VIA LOGICSIG',
+    title:'Falcon accounts are LogicSigs',
+    body:'A Falcon account is not a separate native key type in the ledger. It is a LogicSig — a small program the network evaluates at authorization time — whose job is to verify a Falcon-1024 signature over the transaction. Valid Falcon signature → spend authorized. No app, no shared contract state.'
+  },
+  {
+    kicker:'ADD AN ALLOWLIST',
+    title:'Constrained Falcon: same signature, extra rule',
+    body:'The power move is extending that LogicSig with another constraint dimension. Falcon still verifies — <strong>and</strong> the recipient must be on a compiled allowlist. Pay D: both checks pass. Pay E: Falcon can still sign, but E is not on the list — transfer not authorized.'
+  }
+];
+
+let token={alive:false};
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+function sleep(ms){ const t=token; return new Promise(r=>setTimeout(()=>r(t.alive), REDUCED?0:ms)); }
+function tween(dur, fn){
+  return new Promise(res=>{
+    const t=token, t0=performance.now();
+    (function step(now){
+      if(!t.alive){ res(false); return; }
+      const p=Math.min(1,(now-t0)/dur);
+      fn(p);
+      p<1?requestAnimationFrame(step):res(true);
+    })(t0);
+  });
+}
+function mk(name,attrs,parent){
+  const e=document.createElementNS(NS,name);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  (parent||fx).appendChild(e);
+  return e;
+}
+function flash(id,ms=1000){ const e=$(id); if(!e) return; e.classList.add('lit'); setTimeout(()=>e.classList.remove('lit'),ms); }
+function mark(x,y,ok=true){
+  if(REDUCED) return;
+  const pos2=mk('g',{transform:`translate(${x},${y})`});
+  const g=mk('g',{class:'mark '+(ok?'mark-ok':'mark-no')},pos2);
+  mk('circle',{cx:0,cy:0,r:13},g);
+  if(ok) mk('path',{d:'M-5.5 0 l3.7 4.1 l7.2 -8.3'},g);
+  else { mk('path',{d:'M-5 -5 L5 5'},g); mk('path',{d:'M5 -5 L-5 5'},g); }
+  setTimeout(()=>pos2.remove(),2000);
+}
+function makeBubble(label,x,y,bad=false){
+  const g=mk('g',{class:'pkt'+(bad?' bad':''),transform:`translate(${x},${y})`,opacity:'0'});
+  const w=label.length*6.9+22;
+  mk('rect',{class:'pkt-box',x:-w/2,y:-13,width:w,height:26,rx:13},g);
+  const t=mk('text',{x:0,y:4,'text-anchor':'middle'},g); t.textContent=label;
+  return g;
+}
+async function fadeTo(g,target,dur){
+  const s=parseFloat(g.getAttribute('opacity')||'0');
+  return await tween(dur,p=>g.setAttribute('opacity',(s+(target-s)*p).toFixed(3)));
+}
+async function moveBubble(g,x1,y1,x2,y2,dur){
+  return await tween(dur,p=>{
+    const e2=ease(p);
+    g.setAttribute('transform',`translate(${lerp(x1,x2,e2)},${lerp(y1,y2,e2)})`);
+    g.setAttribute('opacity',(p>.9?(1-p)/.1:1).toFixed(3));
+  });
+}
+
+function prepGate(constrained){
+  $('chk1').classList.remove('done');
+  $('chk1').classList.remove('fail');
+  $('chk2').classList.remove('done');
+  $('chk2').classList.remove('fail');
+  $('gateResult').classList.remove('on');
+  $('gateResult').classList.remove('fail');
+  $('gateResult').textContent='→ transfer authorized';
+  $('flinkD').setAttribute('class','flink');
+  $('flinkE').setAttribute('class','flink');
+  if(!constrained){
+    $('chk2').setAttribute('opacity','0');
+    $('chk2').setAttribute('transform','translate(0,0)');
+  }
+}
+
+function setChk2Slide(u, opacity){
+  /* u=0: off to the right of the gate; u=1: seated in the LogicSig */
+  const dx=lerp(110,0,u);
+  $('chk2').setAttribute('transform',`translate(${dx.toFixed(1)},0)`);
+  $('chk2').setAttribute('opacity',Math.max(0,Math.min(1,opacity)).toFixed(3));
+}
+function setFalconChipHome(){
+  $('falconChip').setAttribute('transform',`translate(${CHIP_HOME[0]},${CHIP_HOME[1]})`);
+}
+function makeAmberBall(x,y){
+  const g=mk('g',{class:'sig-ball',transform:`translate(${x},${y})`,opacity:'0.72'});
+  mk('circle',{
+    cx:0,cy:0,r:5.5,
+    fill:'var(--amber)',
+    stroke:'#f5c97a',
+    'stroke-width':'1',
+    opacity:'0.9'
+  },g);
+  /* soft glow */
+  mk('circle',{
+    cx:0,cy:0,r:9,
+    fill:'var(--amber)',
+    opacity:'0.18'
+  },g);
+  return g;
+}
+async function slideAmberBall(from,to,dur){
+  const ball=makeAmberBall(from[0],from[1]);
+  if(REDUCED){
+    ball.setAttribute('transform',`translate(${to[0]},${to[1]})`);
+    return ball;
+  }
+  const ok=await tween(dur,p=>{
+    const e=ease(p);
+    const x=lerp(from[0],to[0],e);
+    const y=lerp(from[1],to[1],e);
+    ball.setAttribute('transform',`translate(${x},${y})`);
+  });
+  if(!ok){ ball.remove(); return null; }
+  ball.setAttribute('transform',`translate(${to[0]},${to[1]})`);
+  return ball;
+}
+
+function setDualRecipients(on, opacity){
+  const u=opacity==null?1:opacity;
+  const nodeO=on?u.toFixed(3):'0';
+  const linkO=on?(u*FLINK_OP).toFixed(3):'0';
+  $('focusD').setAttribute('opacity',nodeO);
+  $('focusE').setAttribute('opacity',nodeO);
+  $('flinkD').setAttribute('opacity',linkO);
+  $('flinkE').setAttribute('opacity',linkO);
+  $('flinkD').setAttribute('class','flink');
+  $('flinkE').setAttribute('class','flink');
+  $('focusRecv').setAttribute('opacity',on?'0':'1');
+  $('flinkAny').setAttribute('opacity',on?'0':String(FLINK_OP));
+}
+
+/** Instant chrome for a settled scene (no transition). */
+function applyChrome(n){
+  const constrained=n>=1;
+  if(constrained){
+    $('gateTitle').textContent='A’S LOGICSIG · CHECKED ON-CHAIN';
+    $('progChipText').textContent='Falcon + Allowlist';
+    $('progChipRect').setAttribute('width','168');
+    $('progChipText').setAttribute('x','454');
+    $('chk2').setAttribute('opacity','1');
+    $('chk2').setAttribute('transform','translate(0,0)');
+    $('chk2Text').textContent='D is on the allowlist';
+    setDualRecipients(true, 1);
+    $('stageNote').textContent='CONSTRAINED FALCON = FALCON + COMPILED ALLOWLIST';
+    $('gateResult').setAttribute('y','398');
+  } else {
+    $('gateTitle').textContent='LOGIC SIG · CHECKED ON-CHAIN';
+    $('progChipText').textContent='Pure Falcon';
+    $('progChipRect').setAttribute('width','120');
+    $('progChipText').setAttribute('x','430');
+    $('chk2').setAttribute('opacity','0');
+    $('chk2').setAttribute('transform','translate(0,0)');
+    $('chk2Text').textContent='D is on the allowlist';
+    setDualRecipients(false);
+    $('recvTitle').textContent='RECIPIENT';
+    $('recvSub').textContent='any address';
+    $('stageNote').textContent='FALCON ACCOUNT = LOGICSIG THAT VERIFIES FALCON-1024';
+    $('gateResult').setAttribute('y','390');
+  }
+  setFalconChipHome();
+  prepGate(constrained);
+}
+
+/** Morph base Falcon → constrained (or reverse). */
+async function transitionChrome(toConstrained){
+  if(REDUCED){ applyChrome(toConstrained?1:0); return true; }
+
+  if(toConstrained){
+    /* 1) Fade generic recipient; swap chip + footnote */
+    const ok1=await tween(260,p=>{
+      const u=1-p;
+      $('progChip').setAttribute('opacity',u.toFixed(3));
+      $('focusRecv').setAttribute('opacity',u.toFixed(3));
+      $('flinkAny').setAttribute('opacity',(u*FLINK_OP).toFixed(3));
+      $('stageNote').setAttribute('opacity',u.toFixed(3));
+    });
+    if(!ok1) return false;
+    applyChrome(1);
+    $('chk2').classList.remove('done','fail');
+    setChk2Slide(0, 0);
+    setDualRecipients(true, 0);
+    $('progChip').setAttribute('opacity','0');
+    $('stageNote').setAttribute('opacity','0');
+    const ok2=await tween(400,p=>{
+      const o=ease(p);
+      $('progChip').setAttribute('opacity',o.toFixed(3));
+      $('stageNote').setAttribute('opacity',o.toFixed(3));
+      setDualRecipients(true, o);
+    });
+    if(!ok2) return false;
+    /* 2) Slide the allowlist check onto the LogicSig */
+    const ok3=await tween(720,p=>{
+      const e=ease(p);
+      setChk2Slide(e, Math.min(1, e*1.4));
+    });
+    if(!ok3) return false;
+    setChk2Slide(1, 1);
+    setDualRecipients(true, 1);
+    $('progChip').removeAttribute('opacity');
+    $('stageNote').removeAttribute('opacity');
+    return true;
+  }
+
+  /* reverse: slide allowlist check out, hide D/E, restore base Falcon */
+  setChk2Slide(1, 1);
+  $('chk2').classList.remove('done','fail');
+  const okOut=await tween(560,p=>{
+    const e=ease(p);
+    setChk2Slide(1-e, 1-e);
+    setDualRecipients(true, 1-e);
+  });
+  if(!okOut) return false;
+  setChk2Slide(0, 0);
+  const okDim=await tween(220,p=>{
+    const o=(1-p).toFixed(3);
+    $('progChip').setAttribute('opacity',o);
+    $('stageNote').setAttribute('opacity',o);
+  });
+  if(!okDim) return false;
+  applyChrome(0);
+  $('progChip').setAttribute('opacity','0');
+  $('focusRecv').setAttribute('opacity','0');
+  $('flinkAny').setAttribute('opacity','0');
+  $('stageNote').setAttribute('opacity','0');
+  const okIn=await tween(320,p=>{
+    const u=ease(p);
+    $('progChip').setAttribute('opacity',u.toFixed(3));
+    $('focusRecv').setAttribute('opacity',u.toFixed(3));
+    $('flinkAny').setAttribute('opacity',(u*FLINK_OP).toFixed(3));
+    $('stageNote').setAttribute('opacity',u.toFixed(3));
+  });
+  if(!okIn) return false;
+  $('progChip').removeAttribute('opacity');
+  $('focusRecv').setAttribute('opacity','1');
+  $('flinkAny').setAttribute('opacity',String(FLINK_OP));
+  $('stageNote').removeAttribute('opacity');
+  return true;
+}
+
+async function loopFalconBase(){
+  const t=token;
+  while(t.alive){
+    prepGate(false);
+    setFalconChipHome();
+    flash('focusA');
+    const bub=makeBubble('pay 500',668,315);
+    if(!await fadeTo(bub,1,260)){ bub.remove(); return; }
+    bub.classList.add('staged');
+    if(!await sleep(360)){ bub.remove(); return; }
+    /* yellow signal leaves the still FALCON-1024 KEY chip → falcon_verify */
+    const ball=await slideAmberBall(BALL_FROM, BALL_AT_VERIFY, 700);
+    if(!ball){ bub.remove(); return; }
+    if(!await sleep(220)){ ball.remove(); bub.remove(); return; }
+    $('chk1').classList.add('done');
+    if(!await sleep(700)){ ball.remove(); bub.remove(); return; }
+    $('gateResult').classList.add('on');
+    if(!await sleep(420)){ ball.remove(); bub.remove(); return; }
+    bub.classList.remove('staged');
+    /* ball dissolves as the payment is released */
+    if(!await fadeTo(ball,0,280)){ ball.remove(); bub.remove(); return; }
+    ball.remove();
+    if(!await moveBubble(bub,668,315,890,315,1400)){ bub.remove(); return; }
+    bub.remove();
+    flash('focusRecv');
+    mark(995,257);
+    if(!await sleep(1600)) return;
+  }
+}
+
+async function loopConstrained(){
+  const t=token;
+  const turns=[
+    { ok:true,  who:'D', node:'focusD', cy:230, label:'pay D', chk:'D is on the allowlist' },
+    { ok:false, who:'E', node:'focusE', cy:400, label:'pay E', chk:'E is on the allowlist' }
+  ];
+  let i=0;
+  while(t.alive){
+    const turn=turns[i%2];
+    prepGate(true);
+    $('chk2').setAttribute('opacity','1');
+    $('chk2').setAttribute('transform','translate(0,0)');
+    $('chk2Text').textContent=turn.chk;
+    $('flinkD').setAttribute('class','flink');
+    $('flinkE').setAttribute('class','flink');
+    $('flinkD').setAttribute('opacity',String(FLINK_OP));
+    $('flinkE').setAttribute('opacity',String(FLINK_OP));
+    setFalconChipHome();
+    flash('focusA');
+    const bub=makeBubble(turn.label,668,315,!turn.ok);
+    if(!await fadeTo(bub,1,260)){ bub.remove(); return; }
+    bub.classList.add('staged');
+    if(!await sleep(360)){ bub.remove(); return; }
+    /* yellow signal: still FALCON-1024 KEY chip → falcon_verify (same as scene 1) */
+    const ball=await slideAmberBall(BALL_FROM, BALL_AT_VERIFY, 700);
+    if(!ball){ bub.remove(); return; }
+    if(!await sleep(220)){ ball.remove(); bub.remove(); return; }
+    /* Falcon still verifies either way */
+    $('chk1').classList.add('done');
+    if(!await sleep(700)){ ball.remove(); bub.remove(); return; }
+    if(turn.ok){
+      $('chk2').classList.add('done');
+      if(!await sleep(640)){ ball.remove(); bub.remove(); return; }
+      $('gateResult').textContent='→ transfer authorized';
+      $('gateResult').classList.add('on');
+      if(!await sleep(420)){ ball.remove(); bub.remove(); return; }
+      bub.classList.remove('staged');
+      if(!await fadeTo(ball,0,280)){ ball.remove(); bub.remove(); return; }
+      ball.remove();
+      if(!await moveBubble(bub,668,315,890,turn.cy,1400)){ bub.remove(); return; }
+      bub.remove();
+      flash(turn.node);
+      mark(995, turn.cy-58, true);
+    } else {
+      $('chk2').classList.add('fail');
+      $('flinkE').setAttribute('class','flink-bad');
+      $('flinkE').setAttribute('opacity',String(FLINK_BAD_OP));
+      if(!await sleep(640)){ ball.remove(); bub.remove(); return; }
+      $('gateResult').textContent='→ transfer not authorized';
+      $('gateResult').classList.add('fail');
+      if(!await sleep(500)){ ball.remove(); bub.remove(); return; }
+      /* rejected — bubble dies at the gate, never reaches E */
+      bub.classList.remove('staged');
+      if(!await fadeTo(ball,0,280)){ ball.remove(); bub.remove(); return; }
+      ball.remove();
+      if(!await moveBubble(bub,668,315,790,360,900)){ bub.remove(); return; }
+      mark(790,360,false);
+      flash(turn.node);
+      if(!await sleep(280)){ bub.remove(); return; }
+      bub.remove();
+    }
+    if(!await sleep(1600)) return;
+    i++;
+  }
+}
+
+function staticFrame(n){
+  applyChrome(n);
+  $('chk1').classList.add('done');
+  if(n>=1){
+    $('chk2').setAttribute('opacity','1');
+    $('chk2').classList.add('done');
+    $('chk2Text').textContent='D is on the allowlist';
+    mark(995,172,true);
+    mark(995,342,false);
+  } else {
+    mark(995,257,true);
+  }
+  $('gateResult').classList.add('on');
+}
+
+function runLoop(n){
+  if(REDUCED){ staticFrame(n); return; }
+  if(n===0) loopFalconBase();
+  else if(n===1) loopConstrained();
+}
+
+let current=-1, busy=false;
+function updateCaption(n){
+  const sc=scenes[n], inner=$('capInner');
+  inner.classList.remove('swap'); void inner.offsetWidth; inner.classList.add('swap');
+  const pad=k=>String(k).padStart(2,'0');
+  $('capKicker').textContent='SCENE '+pad(n+1)+' — '+sc.kicker;
+  $('capTitle').textContent=sc.title;
+  $('capBody').innerHTML=sc.body;
+  $('counter').textContent=pad(n+1)+' / '+pad(scenes.length);
+  $('btnPrev').disabled=(n===0);
+  $('btnNext').disabled=(n===scenes.length-1);
+}
+
+async function setScene(n){
+  n=Math.max(0,Math.min(scenes.length-1,n));
+  if(busy) return;
+  const first=current<0;
+  if(!first && n===current) return;
+  busy=true;
+  const prev=current;
+  token.alive=false; token={alive:true};
+  while(fx.firstChild) fx.firstChild.remove();
+  document.querySelectorAll('.lit').forEach(e=>e.classList.remove('lit'));
+  current=n;
+  updateCaption(n);
+
+  let ok=true;
+  if(first){
+    applyChrome(0);
+  } else if(n===1 && prev===0){
+    ok=await transitionChrome(true);
+  } else if(n===0 && prev===1){
+    ok=await transitionChrome(false);
+  } else {
+    applyChrome(n);
+  }
+  if(!ok){ busy=false; return; }
+  runLoop(n);
+  busy=false;
+}
+
+function restart(){
+  if(busy) return;
+  if(current!==0){ setScene(0); return; }
+  busy=true;
+  token.alive=false; token={alive:true};
+  while(fx.firstChild) fx.firstChild.remove();
+  document.querySelectorAll('.lit').forEach(e=>e.classList.remove('lit'));
+  updateCaption(0);
+  applyChrome(0);
+  runLoop(0);
+  busy=false;
+}
+
+(function(){
+  $('btnPrev').addEventListener('click',()=>setScene(current-1));
+  $('btnNext').addEventListener('click',()=>setScene(current+1));
+  $('btnReplay').addEventListener('click',restart);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight') setScene(current+1);
+    if(e.key==='ArrowLeft') setScene(current-1);
+  });
+  setScene(0);
+})();
+</script>
+</body>
+</html>
