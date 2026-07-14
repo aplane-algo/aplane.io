@@ -401,32 +401,26 @@ bnow={...boundaryGeom[0]};
 
 const scenes=[
   {
-    kicker:'DEFINING THE MESH',
     title:'A closed set with a hard edge, no smart contracts required',
     body:'Accounts A, B, and C are restricted by consensus to send only to each other. Paying Account D — outside the mesh — is impossible. The allowlist is compiled into the code that authorizes each account’s sends, so no valid transaction to D can exist.'
   },
   {
-    kicker:'EXPANDING THE MESH',
     title:'Growing the mesh by rekeying',
     body:'The allowlist lives inside each account’s LogicSig. To enable sending to Account D, the accounts are rekeyed to new LogicSigs whose allowlists explicitly include D. Same funds, same identities — a larger mesh. What was impossible a moment ago is now an ordinary allowlisted transfer.'
   },
   {
-    kicker:'EXTERNAL DESTINATIONS',
     title:'Mesh offramps can be added',
     body:'An external account — a CEX deposit address, a custodian, a counterparty — can be added the same way: put it on someone’s allowlist and rekey. Here Account C gains a deliberate exit to a CEX. The mesh stays closed; the exit is explicit and protocol-enforced.'
   },
   {
-    kicker:'INSIDE ONE LINK',
     title:'The links, up close',
     body:'Zoom into the A → D link. Account A’s LogicSig is the canonical Falcon LogicSig extended with a compiled allowlist. To pay D, A produces a Falcon-1024 signature, and that LogicSig checks two things on-chain: a valid post-quantum signature, and that D is on the allowlist. Both pass, so the payment settles to D.'
   },
   {
-    kicker:'REKEY AGAIN',
     title:'Adding to the allowlist by rekeying',
     body:'Extending the allowlist works the same way at any scale. Rekey Account A to a new LogicSig whose allowlist now also includes Account E. The old program lifts away and the new one takes its place — same account, same funds — and A can now pay both D and E, each still checked against the compiled allowlist on-chain.'
   },
   {
-    kicker:'KEY COMPROMISE',
     title:'Stolen key, mesh intact',
     body:'A stolen or leaked Falcon key can still sign, but it can still only pay accounts already in the allowlist — never the hacker. And if you construct the LogicSig so rekeying isn’t authorized by the spend key alone, the thief can’t rewrite the allowlist either. The mesh holds, key theft and all.'
   }
@@ -1222,7 +1216,7 @@ function updateCaption(n){
   const sc=scenes[n], inner=$('capInner');
   inner.classList.remove('swap'); void inner.offsetWidth; inner.classList.add('swap');
   const pad=k=>String(k).padStart(2,'0');
-  $('capKicker').textContent='SCENE '+pad(n+1)+' — '+sc.kicker;
+  $('capKicker').textContent='SCENE '+pad(n+1);
   $('capTitle').textContent=sc.title;
   $('capBody').innerHTML=sc.body;
   $('counter').textContent=pad(n+1)+' / '+pad(scenes.length);

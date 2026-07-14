@@ -246,22 +246,18 @@ const BALL_AT_VERIFY=[518,296];             /* slightly right in the paren gap (
 
 const scenes=[
   {
-    kicker:'FALCON VIA LOGICSIG',
     title:'Falcon accounts via LogicSigs',
     body:'Currently, Falcon accounts are implemented using Algorand Logic Signatures — small, stateless TEAL programs that the network evaluates for transaction authorization. A simple program checks a Falcon signature attached to the transaction and allows the spend if that signature is valid.<br><br>Native Falcon arrives in Q3 2026, so LogicSigs won’t be required for standard Falcon accounts anymore. But Falcon LogicSigs remain powerful; extending them can enable “constrained Falcon accounts,” as the next scenes show. And with support for larger programs on the way, they’ll only get more capable.'
   },
   {
-    kicker:'ADD AN ALLOWLIST',
     title:'Constrained Falcon: same signature, extra rule',
     body:'We can harden the LogicSig by extending it with another constraint dimension — in this case, a compiled allowlist. Falcon still verifies — <strong>and</strong> the recipient must be on the allowlist. Pay B: both checks pass. Pay C: Falcon can still sign, but C is not on the allowlist — transfer not authorized.'
   },
   {
-    kicker:'ADD AN AMOUNT CAP',
     title:'Constrained Falcon: cap the transfer size',
     body:'Another constraint dimension is amount. Falcon still verifies — <strong>and</strong> the transfer amount must stay under a compiled cap (here, <strong>amount &lt; 100k</strong>). Pay 500: both checks pass. Pay 250k: Falcon can still sign, but the amount check fails — transfer not authorized.'
   },
   {
-    kicker:'COMBINE CONSTRAINTS',
     title:'Combine the constraints',
     body:'An allowlist and an amount cap stack in the same LogicSig. Falcon still verifies — then <strong>recipient on allowlist</strong> and <strong>amount &lt; 100k</strong> must both pass.'
   }
@@ -987,7 +983,7 @@ function updateCaption(n){
   const sc=scenes[n], inner=$('capInner');
   inner.classList.remove('swap'); void inner.offsetWidth; inner.classList.add('swap');
   const pad=k=>String(k).padStart(2,'0');
-  $('capKicker').textContent='SCENE '+pad(n+1)+' — '+sc.kicker;
+  $('capKicker').textContent='SCENE '+pad(n+1);
   $('capTitle').textContent=sc.title;
   $('capBody').innerHTML=sc.body;
   $('counter').textContent=pad(n+1)+' / '+pad(scenes.length);
