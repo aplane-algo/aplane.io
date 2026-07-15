@@ -153,13 +153,13 @@ text{user-select:none}
 .jointag{animation:tagpop 3.4s ease forwards}
 @keyframes tagpop{0%{opacity:0;transform:translateY(7px) scale(.92)}8%{opacity:1;transform:none}86%{opacity:1}100%{opacity:0}}
 
-.legend{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;padding:20px 0 2px}
+.legend{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;padding:14px 0 2px}
 .leg-item{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;color:var(--page-muted);letter-spacing:.04em}
 .leg-dot{width:10px;height:10px;border-radius:99px;flex:none}
 .leg-dot.ok{background:var(--teal);box-shadow:0 0 8px rgba(79,224,196,.5)}
 .leg-dot.no{background:var(--red);box-shadow:0 0 8px rgba(242,107,107,.5)}
 
-.caption{min-height:150px;padding:20px 8px 4px;display:flex;justify-content:center}
+.caption{min-height:150px;padding:10px 8px 4px;display:flex;justify-content:center}
 .caption-inner{max-width:66ch;text-align:center}
 .caption-inner.swap{animation:capin .5s ease}
 @keyframes capin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -168,7 +168,7 @@ text{user-select:none}
 .caption p{color:var(--page-muted);font-size:15.5px}
 .caption p strong{font-weight:600;color:var(--page-ink)}
 
-.controls{display:flex;align-items:center;justify-content:center;gap:14px;padding:8px 0 8px;flex-wrap:wrap}
+.controls{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 0 0;flex-wrap:wrap}
 .ctl-btn{
   font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--page-ink);
   border:1px solid var(--page-border);border-radius:8px;padding:9px 16px;background:#ffffff;
@@ -337,6 +337,13 @@ text{user-select:none}
     </svg>
   </div>
 
+  <nav class="controls" aria-label="Scene controls">
+    <button class="ctl-btn" id="btnPrev">‹ Back</button>
+    <span class="counter" id="counter">01 / 06</span>
+    <button class="ctl-btn" id="btnNext">Next ›</button>
+    <button class="ctl-btn" id="btnReplay">Replay</button>
+  </nav>
+
   <div class="legend">
     <div class="leg-item"><span class="leg-dot ok"></span>allowed transfer</div>
     <div class="leg-item"><span class="leg-dot no"></span>blocked — not in allowlist</div>
@@ -349,13 +356,6 @@ text{user-select:none}
       <p id="capBody"></p>
     </div>
   </section>
-
-  <nav class="controls" aria-label="Scene controls">
-    <button class="ctl-btn" id="btnPrev">‹ Back</button>
-    <span class="counter" id="counter">01 / 06</span>
-    <button class="ctl-btn" id="btnNext">Next ›</button>
-    <button class="ctl-btn" id="btnReplay">Replay</button>
-  </nav>
 </main>
 
 <script>
