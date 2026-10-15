@@ -112,15 +112,15 @@ text{user-select:none}
 .mark-ok path{stroke:var(--teal);stroke-width:2;fill:none}
 .mark-no circle{fill:var(--red-dim);stroke:var(--red);stroke-width:1.4}
 .mark-no path{stroke:var(--red);stroke-width:2;fill:none}
-.mark{animation:markpop 1.9s ease forwards}
-@keyframes markpop{0%{opacity:0;transform:scale(.4)}10%{opacity:1;transform:scale(1)}82%{opacity:1}100%{opacity:0}}
+.mark{animation:markpop 2.8s ease forwards}
+@keyframes markpop{0%{opacity:0;transform:scale(.4)}10%{opacity:1;transform:scale(1)}84%{opacity:1}100%{opacity:0}}
 
 .stamp text{font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.18em;fill:var(--red)}
 .stamp rect{fill:rgba(35,21,36,.88);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 4}
 .stamp.teal text{fill:var(--teal)}
 .stamp.teal rect{fill:rgba(14,32,34,.9);stroke:var(--teal)}
-.stamp{animation:stamppop 2.4s ease forwards}
-@keyframes stamppop{0%{opacity:0;transform:scale(1.35)}12%{opacity:1;transform:scale(1)}84%{opacity:1}100%{opacity:0}}
+.stamp{animation:stamppop 3.4s ease forwards}
+@keyframes stamppop{0%{opacity:0;transform:scale(1.35)}12%{opacity:1;transform:scale(1)}86%{opacity:1}100%{opacity:0}}
 
 .barrier{stroke:var(--red);stroke-width:4;stroke-linecap:round;opacity:.25;transition:opacity .25s}
 .barrier.hot{opacity:1;filter:drop-shadow(0 0 8px rgba(242,107,107,.65))}
@@ -594,7 +594,7 @@ function mk(name,attrs,parent){
   (parent||fx).appendChild(e);
   return e;
 }
-function flash(id,ms=950,cls='lit'){
+function flash(id,ms=1350,cls='lit'){
   const e=$(id); if(!e) return;
   e.classList.add(cls);
   setTimeout(()=>e.classList.remove(cls),ms);
@@ -605,7 +605,7 @@ function mark(x,y,ok=true){
   mk('circle',{cx:0,cy:0,r:13},g);
   if(ok) mk('path',{d:'M-5.5 0 l3.7 4.1 l7.2 -8.3'},g);
   else { mk('path',{d:'M-5 -5 L5 5'},g); mk('path',{d:'M5 -5 L-5 5'},g); }
-  if(!REDUCED) setTimeout(()=>pos2.remove(),2000);
+  if(!REDUCED) setTimeout(()=>pos2.remove(),2850);
 }
 function stamp(x,y,text,teal=false){
   const pos2=mk('g',{transform:`translate(${x},${y})`});
@@ -614,7 +614,7 @@ function stamp(x,y,text,teal=false){
   mk('rect',{x:-w/2,y:-16,width:w,height:32,rx:6},g);
   const t=mk('text',{x:0,y:5,'text-anchor':'middle'},g);
   t.textContent=text;
-  if(!REDUCED) setTimeout(()=>pos2.remove(),2400);
+  if(!REDUCED) setTimeout(()=>pos2.remove(),3450);
 }
 function makeBubble(label,x,y,kind=''){
   const g=mk('g',{class:'pkt'+(kind?' '+kind:''),transform:`translate(${x},${y})`,opacity:'0'});
@@ -743,9 +743,10 @@ function configureRotatingStage(n, showRetired){
 async function animateStageRotation(n){
   const next=n+1, afterNext=n+2;
   const badge=makeBubble(`REKEY → A${subNum(next)}`,520,310,'amber');
-  await fadeTo(badge,1,150);
+  if(!await fadeTo(badge,1,280)){ badge.remove(); return false; }
+  if(!await sleep(320)){ badge.remove(); return false; }
   let swapped=false;
-  const ok=await tween(860,p=>{
+  const ok=await tween(1680,p=>{
     if(p<0.48){
       const u=ease(p/0.48);
       $('activeStageGate').setAttribute('transform',`translate(0,${lerp(0,-150,u)})`);
@@ -769,18 +770,60 @@ async function animateStageRotation(n){
       $('queuedSlot').setAttribute('opacity',v.toFixed(3));
     }
   });
+  if(!await fadeTo(badge,0,220)){ badge.remove(); return false; }
   badge.remove();
   if(!ok) return false;
   configureRotatingStage(next, true);
-  flash('rotAccount',900);
+  flash('rotAccount',1300);
   return true;
 }
 
-/* Show only the requested top-level SVG layer */
+function layerForScene(n){
+  if(n===0) return 'layerStatic';
+  if(n===1) return 'layerDerivation';
+  return 'layerRotating';
+}
+
+/* Show only the requested top-level SVG layer immediately */
 function showLayer(layerId){
   ['layerStatic','layerDerivation','layerRotating'].forEach(id=>{
     $(id).setAttribute('opacity', id===layerId ? '1' : '0');
   });
+}
+
+/* Smooth cross-fade between top-level scene layers */
+async function transitionSceneLayer(prevScene, nextScene){
+  const toId=layerForScene(nextScene);
+  if(prevScene<0 || REDUCED){
+    showLayer(toId);
+    return true;
+  }
+  const fromId=layerForScene(prevScene);
+  if(fromId===toId){
+    /* Gentle dim-and-restore within layerRotating when switching between scenes 2, 3, 4 */
+    const el=$(toId);
+    const ok1=await tween(360,p=>el.setAttribute('opacity',(1-ease(p)*0.75).toFixed(3)));
+    if(!ok1) return false;
+    if(nextScene===2) configureRotatingStage(0, false);
+    else if(nextScene===3) configureRotatingStage(0, false);
+    else if(nextScene===4) configureRotatingStage(1, true);
+    const ok2=await tween(480,p=>el.setAttribute('opacity',(0.25+ease(p)*0.75).toFixed(3)));
+    if(!ok2) return false;
+    el.setAttribute('opacity','1');
+    return true;
+  }
+  if(nextScene===2 || nextScene===3) configureRotatingStage(0, false);
+  else if(nextScene===4) configureRotatingStage(1, true);
+  const fromEl=$(fromId), toEl=$(toId);
+  toEl.setAttribute('opacity','0');
+  const ok=await tween(680,p=>{
+    const e=ease(p);
+    fromEl.setAttribute('opacity',(1-e).toFixed(3));
+    toEl.setAttribute('opacity',e.toFixed(3));
+  });
+  if(!ok) return false;
+  showLayer(toId);
+  return true;
 }
 
 /* ======================================================================== */
@@ -801,35 +844,35 @@ async function loopScene0(){
     $('s0ExposureBox').setAttribute('opacity','0');
     $('s0GateBox').style.stroke='rgba(79,224,196,.48)';
 
-    if(!await sleep(500)) return;
+    if(!await sleep(850)) return;
     flash('s0Account');
     const bub=makeBubble('pay 500 (spend #1)',685,300);
-    if(!await fadeTo(bub,1,240)){ bub.remove(); return; }
+    if(!await fadeTo(bub,1,420)){ bub.remove(); return; }
     bub.classList.add('staged');
-    if(!await sleep(360)){ bub.remove(); return; }
+    if(!await sleep(650)){ bub.remove(); return; }
 
     /* Sign & reveal pk */
     $('s0Chk1').classList.add('done');
     $('s0KeyBadge').setAttribute('class','chip red');
     $('s0KeyBadgeText').textContent='PUBLIC KEY: REVEALED ON-CHAIN';
-    if(!await sleep(520)){ bub.remove(); return; }
+    if(!await sleep(850)){ bub.remove(); return; }
 
     $('s0Chk2').classList.add('fail');
     $('s0Result').classList.add('fail');
     $('s0GateBox').style.stroke='rgba(242,107,107,.65)';
-    if(!await sleep(420)){ bub.remove(); return; }
+    if(!await sleep(750)){ bub.remove(); return; }
 
     bub.classList.remove('staged');
-    if(!await moveBubble(bub,685,300,885,300,1150)){ bub.remove(); return; }
+    if(!await moveBubble(bub,685,300,885,300,1750)){ bub.remove(); return; }
     bub.remove();
     flash('s0Recv');
     mark(990,242,true);
 
     /* Now show persistent exposure at rest */
-    if(!await fadeTo($('s0ExposureBox'),1,380)) return;
-    flash('s0Account',1600,'warn');
+    if(!await fadeTo($('s0ExposureBox'),1,620)) return;
+    flash('s0Account',2200,'warn');
     stamp(515,152,'KEY EXPOSED AT REST');
-    if(!await sleep(2600)) return;
+    if(!await sleep(3600)) return;
   }
 }
 
@@ -840,22 +883,22 @@ async function loopScene1(){
   const cards=['s1Card0','s1Card1','s1Card2','s1Card3'];
   const yTargets=[130,255,380,505];
   while(t.alive){
-    flash('s1SeedNode',1000);
-    if(!await sleep(450)) return;
+    flash('s1SeedNode',1400);
+    if(!await sleep(750)) return;
     for(let i=0;i<cards.length;i++){
       if(!t.alive) return;
       const pulse=makeSigToken(`HKDF(stage ${i<3?i:'i'})`,310,415,'#4fe0c4');
-      const ok=await tween(520,p=>{
+      const ok=await tween(920,p=>{
         const e=ease(p);
         pulse.setAttribute('transform',`translate(${lerp(310,435,e)},${lerp(415,yTargets[i],e)})`);
       });
       pulse.remove();
       if(!ok) return;
-      flash(cards[i],950);
-      if(!await sleep(240)) return;
+      flash(cards[i],1350);
+      if(!await sleep(520)) return;
     }
     stamp(765,64,'ALL PUBLIC KEYS HIDDEN BEHIND 32B HASHES',true);
-    if(!await sleep(2400)) return;
+    if(!await sleep(3600)) return;
   }
 }
 
@@ -869,42 +912,43 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   $('rotRecv').setAttribute('transform','translate(995,310)');
   $('rotFlinkMain').setAttribute('y2','310');
 
+  if(!await sleep(450)) return false;
   flash('rotAccount');
   const bub=makeBubble(`${amountLabel} + Rekey→A${subNum(next)}`,710,310);
-  if(!await fadeTo(bub,1,240)){ bub.remove(); return false; }
+  if(!await fadeTo(bub,1,380)){ bub.remove(); return false; }
   bub.classList.add('staged');
 
   /* Step 1: Signer checks Stage n+1 opens before releasing Stage n sig */
-  if(!await sleep(280)){ bub.remove(); return false; }
+  if(!await sleep(550)){ bub.remove(); return false; }
   $('rotChk5').classList.add('done');
-  if(!await sleep(320)){ bub.remove(); return false; }
+  if(!await sleep(650)){ bub.remove(); return false; }
 
   /* Step 2: Dual signals (Falcon-1024 + Ed25519) travel into TEAL gate */
   updateConveyorPills(stageIdx, true);
   $('rotStageBadge').setAttribute('class','chip amber');
   $('rotStageBadgeText').textContent=`SIGNING: STAGE ${stageIdx} KEYS REVEALED IN TX`;
 
-  const balls=await slideDualSignals([185,205],[562,264],[185,415],[594,296],660);
+  const balls=await slideDualSignals([185,205],[562,264],[185,415],[594,296],1180);
   if(!balls){ bub.remove(); return false; }
   const [bF,bE]=balls;
 
-  if(!await sleep(200)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  if(!await sleep(380)){ bF.remove(); bE.remove(); bub.remove(); return false; }
   $('rotChk1').classList.add('done');
   $('rotChk2').classList.add('done');
-  if(!await sleep(420)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  if(!await sleep(760)){ bF.remove(); bE.remove(); bub.remove(); return false; }
 
   $('rotChk3').classList.add('done');
   $('rotChk4').classList.add('done');
-  if(!await sleep(380)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  if(!await sleep(720)){ bF.remove(); bE.remove(); bub.remove(); return false; }
 
   $('rotGateResult').classList.add('on');
-  if(!await sleep(360)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  if(!await sleep(680)){ bF.remove(); bE.remove(); bub.remove(); return false; }
 
   bF.remove(); bE.remove();
   bub.classList.remove('staged');
 
   /* Step 3: Payment settles AND stage rotates atomically */
-  const moveP=moveBubble(bub,710,310,890,310,1050);
+  const moveP=moveBubble(bub,710,310,890,310,1750);
   const rotP=animateStageRotation(stageIdx);
   const [ok1,ok2]=await Promise.all([moveP,rotP]);
   bub.remove();
@@ -923,7 +967,7 @@ async function loopScene2(){
   while(t.alive){
     if(!await runSingleSpendCycle(0, 'pay 500')) return;
     stamp(520,122,'A₀ RETIRED · A₁ NOW ACTIVE & HASH-SHIELDED',true);
-    if(!await sleep(2500)) return;
+    if(!await sleep(3600)) return;
   }
 }
 
@@ -937,9 +981,9 @@ async function loopScene3(){
     for(let s=0;s<3;s++){
       if(!t.alive) return;
       if(!await runSingleSpendCycle(s, labels[s])) return;
-      if(!await sleep(1250)) return;
+      if(!await sleep(2200)) return;
     }
-    if(!await sleep(900)) return;
+    if(!await sleep(1400)) return;
   }
 }
 
@@ -960,32 +1004,32 @@ async function loopScene4(){
     $('rotBarrier').setAttribute('opacity','0.35');
     $('rotBarrier').classList.remove('hot');
 
-    if(!await sleep(450)) return;
-    flash('rotAttacker',1000,'warn');
+    if(!await sleep(800)) return;
+    flash('rotAttacker',1400,'warn');
     const badBub=makeBubble('forged tx (signed by retired A₀)',710,335,'bad');
-    if(!await fadeTo(badBub,1,220)){ badBub.remove(); return; }
+    if(!await fadeTo(badBub,1,380)){ badBub.remove(); return; }
     badBub.classList.add('staged');
 
-    const ballsA=await slideDualSignals([520,122],[562,264],[520,122],[594,296],640,'#f26b6b','#f26b6b');
+    const ballsA=await slideDualSignals([520,122],[562,264],[520,122],[594,296],1150,'#f26b6b','#f26b6b');
     if(!ballsA){ badBub.remove(); return; }
     const [bF1,bE1]=ballsA;
 
-    if(!await sleep(220)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
+    if(!await sleep(420)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
     $('rotChk1').classList.add('fail');
     $('rotChk2').classList.add('fail');
     $('rotGateResult').textContent='→ rejected: account auth-addr is A₁, not A₀';
     $('rotGateResult').classList.add('fail');
     $('rotBarrier').classList.add('hot');
 
-    if(!await sleep(480)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
+    if(!await sleep(850)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
     bF1.remove(); bE1.remove();
     badBub.classList.remove('staged');
-    if(!await moveBubble(badBub,710,335,775,385,720,false)){ badBub.remove(); return; }
+    if(!await moveBubble(badBub,710,335,775,385,1250,false)){ badBub.remove(); return; }
     mark(775,385,false);
     stamp(775,445,'RETIRED STAGE REJECTED');
-    if(!await sleep(300)){ badBub.remove(); return; }
+    if(!await sleep(500)){ badBub.remove(); return; }
     badBub.remove();
-    if(!await sleep(1700)) return;
+    if(!await sleep(2800)) return;
 
     /* Scenario B: Legitimate Stage 1 dual-signed spend succeeds and rotates to Stage 2 */
     configureRotatingStage(1, true);
@@ -996,33 +1040,37 @@ async function loopScene4(){
     $('rotBarrier').setAttribute('opacity','0.2');
     $('rotBarrier').classList.remove('hot');
 
+    if(!await sleep(550)) return;
     flash('rotAccount');
     const okBub=makeBubble('pay 500 + Rekey→A₂',710,295);
-    if(!await fadeTo(okBub,1,220)){ okBub.remove(); return; }
+    if(!await fadeTo(okBub,1,380)){ okBub.remove(); return; }
     okBub.classList.add('staged');
+    if(!await sleep(450)){ okBub.remove(); return; }
     $('rotChk5').classList.add('done');
 
-    const ballsB=await slideDualSignals([185,205],[562,264],[185,415],[594,296],640);
+    const ballsB=await slideDualSignals([185,205],[562,264],[185,415],[594,296],1150);
     if(!ballsB){ okBub.remove(); return; }
     const [bF2,bE2]=ballsB;
-    if(!await sleep(220)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
+    if(!await sleep(400)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
     $('rotChk1').classList.add('done');
     $('rotChk2').classList.add('done');
+    if(!await sleep(680)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
     $('rotChk3').classList.add('done');
     $('rotChk4').classList.add('done');
+    if(!await sleep(650)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
     $('rotGateResult').classList.add('on');
-    if(!await sleep(420)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
+    if(!await sleep(680)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
     bF2.remove(); bE2.remove();
     okBub.classList.remove('staged');
 
-    const mP=moveBubble(okBub,710,295,890,220,1000);
+    const mP=moveBubble(okBub,710,295,890,220,1750);
     const rP=animateStageRotation(1);
     const [mOk,rOk]=await Promise.all([mP,rP]);
     okBub.remove();
     if(!mOk || !rOk) return;
     flash('rotRecv');
     mark(995,164,true);
-    if(!await sleep(2000)) return;
+    if(!await sleep(3200)) return;
   }
 }
 
@@ -1095,11 +1143,14 @@ async function setScene(n){
   const first=current<0;
   if(!first && n===current) return;
   busy=true;
+  const prev=current;
   token.alive=false; token={alive:true};
   while(fx.firstChild) fx.firstChild.remove();
   document.querySelectorAll('.lit,.warn').forEach(e=>e.classList.remove('lit','warn'));
   current=n;
   updateCaption(n);
+  const ok=await transitionSceneLayer(prev, n);
+  if(!ok){ busy=false; return; }
   runLoop(n);
   busy=false;
 }
