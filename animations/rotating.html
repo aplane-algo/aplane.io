@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotating Falcon + Ed25519 Hybrid Accounts</title>
+<style>
+:root{
+  --bg:#0a0f1d; --bg-high:#101a33; --panel:#131b2f; --panel-deep:#0e1526;
+  --line:#26324e; --line-soft:#1a2440;
+  --ink:#e9eef8; --muted:#8a94ac; --faint:#5a6480;
+  --amber:#f0b45c; --amber-dim:rgba(240,180,92,.14);
+  --teal:#4fe0c4; --teal-dim:rgba(79,224,196,.13);
+  --blue:#6eb5ff; --blue-dim:rgba(110,181,255,.14);
+  --red:#f26b6b; --red-dim:rgba(242,107,107,.12);
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --page-bg:#f6f7f2; --page-ink:#111111; --page-muted:#5b5f66;
+  --page-faint:#5b5f66; --page-border:#d7dacd; --ink-teal:#0a7d6b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:light}
+body{
+  background:var(--page-bg);
+  color:var(--page-ink); font-family:var(--sans); min-height:100vh; -webkit-font-smoothing:antialiased;
+  padding-bottom:48px;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink-teal);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+header{padding:40px 0 10px;text-align:center}
+h1{font-weight:600;font-size:clamp(26px,4vw,40px);letter-spacing:-.015em;text-wrap:balance}
+.sub{color:var(--page-muted);max-width:68ch;margin:10px auto 0;text-wrap:balance;line-height:1.5}
+
+.stage-frame{
+  margin-top:24px;border:1px solid #cdd0c6;border-radius:16px;overflow:hidden;
+  background:radial-gradient(960px 460px at 50% -10%, #132042, #0a0f1d 74%);
+  box-shadow:0 4px 20px rgba(17,17,17,.08), 0 1px 3px rgba(17,17,17,.06);
+}
+svg#stage{display:block;width:100%;height:auto}
+text{user-select:none}
+.grid-line{stroke:#121a30;stroke-width:1}
+
+/* Node & Box Chrome */
+.node-box{fill:var(--panel);stroke:var(--line);stroke-width:1.35;transition:stroke .25s, filter .25s}
+.node-title{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.13em;fill:var(--ink)}
+.node-sub{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.node-dot{fill:var(--teal)}
+.node.lit .node-box{stroke:var(--teal);filter:drop-shadow(0 0 14px rgba(79,224,196,.42))}
+.node.warn .node-box{stroke:var(--red);filter:drop-shadow(0 0 14px rgba(242,107,107,.42))}
+.node.warn .node-dot{fill:var(--red)}
+
+/* Gate / Stage Program Chrome */
+.gate-box{fill:var(--panel-deep);stroke:rgba(79,224,196,.48);stroke-width:1.3}
+.gate-box.retired{fill:#0b101e;stroke:#252f48;stroke-dasharray:5 4}
+.gate-box.queued{fill:#0c1426;stroke:rgba(79,224,196,.32);stroke-dasharray:6 4}
+.gate-title{font-family:var(--mono);font-weight:600;font-size:10.5px;letter-spacing:.11em;fill:var(--muted)}
+.stage-footnote{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.12em;fill:var(--faint)}
+
+/* Links & Connectors */
+.flink{stroke:var(--teal);stroke-width:1.8;fill:none}
+.flink-bad{stroke:var(--red);stroke-width:1.8;fill:none;stroke-dasharray:6 6}
+.attach{stroke:#5a6a86;stroke-width:6;stroke-linecap:round;fill:none}
+.attach-active{stroke:var(--teal);stroke-width:3;stroke-linecap:round;fill:none;stroke-dasharray:6 6}
+.derive-line{stroke:#33466e;stroke-width:1.5;stroke-dasharray:5 5;fill:none}
+
+/* Check rows inside TEAL gate */
+.chk circle{fill:none;stroke:var(--line);stroke-width:1.3}
+.chk.done circle{stroke:var(--teal);fill:var(--teal-dim)}
+.chk.fail circle{stroke:var(--red);fill:var(--red-dim)}
+.chk .tick,.chk .cross{stroke-width:1.8;fill:none;opacity:0}
+.chk .tick{stroke:var(--teal)}
+.chk .cross{stroke:var(--red)}
+.chk.done .tick{opacity:1}
+.chk.fail .cross{opacity:1}
+.chk-text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.chk.done .chk-text{fill:var(--ink)}
+.chk.fail .chk-text{fill:var(--red)}
+
+.gate-result{font-family:var(--mono);font-weight:600;font-size:12px;fill:var(--faint);opacity:.55}
+.gate-result.on{fill:var(--teal);opacity:1}
+.gate-result.fail{fill:var(--red);opacity:1}
+
+/* Chips */
+.chip rect{stroke-width:1.1}
+.chip.amber rect{fill:var(--amber-dim);stroke:var(--amber)}
+.chip.teal rect{fill:var(--teal-dim);stroke:var(--teal)}
+.chip.blue rect{fill:var(--blue-dim);stroke:var(--blue)}
+.chip.red rect{fill:var(--red-dim);stroke:var(--red)}
+.chip.muted rect{fill:rgba(90,100,128,.12);stroke:#3a4663}
+.chip text{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.05em}
+.chip.amber text{fill:var(--amber)}
+.chip.teal text{fill:var(--teal)}
+.chip.blue text{fill:var(--blue)}
+.chip.red text{fill:var(--red)}
+.chip.muted text{fill:var(--muted)}
+
+/* Packets & Signals */
+.pkt-box{fill:#0f2420;stroke:var(--teal);stroke-width:1.1}
+.pkt text{font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--teal)}
+.pkt.bad .pkt-box{stroke:var(--red);fill:#231524}
+.pkt.bad text{fill:var(--red)}
+.pkt.amber .pkt-box{stroke:var(--amber);fill:#241c10}
+.pkt.amber text{fill:var(--amber)}
+.pkt.staged{animation:pktpulse 1.15s ease-in-out infinite}
+@keyframes pktpulse{0%,100%{opacity:.72}50%{opacity:1}}
+
+/* Pops & Stamps */
+.mark,.stamp,.rekey-pill{transform-box:fill-box;transform-origin:center}
+.mark-ok circle{fill:var(--teal-dim);stroke:var(--teal);stroke-width:1.4}
+.mark-ok path{stroke:var(--teal);stroke-width:2;fill:none}
+.mark-no circle{fill:var(--red-dim);stroke:var(--red);stroke-width:1.4}
+.mark-no path{stroke:var(--red);stroke-width:2;fill:none}
+.mark{animation:markpop 1.9s ease forwards}
+@keyframes markpop{0%{opacity:0;transform:scale(.4)}10%{opacity:1;transform:scale(1)}82%{opacity:1}100%{opacity:0}}
+
+.stamp text{font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.18em;fill:var(--red)}
+.stamp rect{fill:rgba(35,21,36,.88);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 4}
+.stamp.teal text{fill:var(--teal)}
+.stamp.teal rect{fill:rgba(14,32,34,.9);stroke:var(--teal)}
+.stamp{animation:stamppop 2.4s ease forwards}
+@keyframes stamppop{0%{opacity:0;transform:scale(1.35)}12%{opacity:1;transform:scale(1)}84%{opacity:1}100%{opacity:0}}
+
+.barrier{stroke:var(--red);stroke-width:4;stroke-linecap:round;opacity:.25;transition:opacity .25s}
+.barrier.hot{opacity:1;filter:drop-shadow(0 0 8px rgba(242,107,107,.65))}
+
+/* Legend & Controls */
+.legend{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;padding:14px 0 2px}
+.leg-item{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--page-muted);letter-spacing:.03em}
+.leg-dot{width:10px;height:10px;border-radius:99px;flex:none}
+.leg-dot.teal{background:var(--teal);box-shadow:0 0 7px rgba(79,224,196,.5)}
+.leg-dot.amber{background:var(--amber);box-shadow:0 0 7px rgba(240,180,92,.5)}
+.leg-dot.blue{background:var(--blue);box-shadow:0 0 7px rgba(110,181,255,.5)}
+.leg-dot.red{background:var(--red);box-shadow:0 0 7px rgba(242,107,107,.5)}
+
+.controls{display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0 0;flex-wrap:wrap}
+.ctl-btn{
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--page-ink);
+  border:1px solid var(--page-border);border-radius:8px;padding:8px 15px;background:#ffffff;
+  transition:border-color .2s, background .2s;
+}
+.ctl-btn:hover{border-color:var(--ink-teal);background:#eef0ea}
+.ctl-btn[disabled]{opacity:.48;pointer-events:none}
+.counter{font-family:var(--mono);font-size:12px;color:var(--page-faint);letter-spacing:.12em;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+
+.scene-dots{display:flex;align-items:center;gap:6px;margin:0 4px}
+.scene-dot{
+  width:26px;height:7px;border-radius:99px;background:#d7dacd;
+  transition:background .2s, width .2s;
+}
+.scene-dot:hover{background:#9ab5ae}
+.scene-dot.active{background:var(--ink-teal);width:34px}
+
+.caption{min-height:150px;padding:12px 8px 4px;display:flex;justify-content:center}
+.caption-inner{max-width:68ch;text-align:center}
+.caption-inner.swap{animation:capin .45s ease}
+@keyframes capin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kicker{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.22em;color:var(--ink-teal)}
+.caption h2{font-weight:600;font-size:clamp(19px,2.6vw,25px);margin:8px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.caption p{color:var(--page-muted);font-size:15.5px;line-height:1.55}
+.caption p strong{font-weight:600;color:var(--page-ink)}
+.caption code{font-family:var(--mono);font-size:13.5px;background:#e8ebe2;padding:1px 5px;border-radius:4px;color:#111}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1>Rotating Falcon + Ed25519 Hybrid Accounts</h1>
+  <p class="sub">A fixed Algorand account whose authorizing Falcon-1024 + Ed25519 LogicSig rotates on every spend—hiding active public keys behind a SHA-512/256 hash at rest and verifying both signatures in flight.</p>
+</header>
+
+<main class="wrap">
+  <div class="stage-frame">
+    <svg id="stage" viewBox="0 0 1200 640" role="img"
+         aria-label="Animation showing Rotating Falcon-1024 and Ed25519 hybrid accounts on Algorand">
+      <defs>
+        <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+          <path class="grid-line" d="M44 0H0V44" fill="none"/>
+        </pattern>
+        <linearGradient id="hashShieldGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="rgba(79,224,196,0.16)"/>
+          <stop offset="100%" stop-color="rgba(110,181,255,0.08)"/>
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="640" fill="var(--bg)"/>
+      <rect width="1200" height="640" fill="url(#grid)" opacity="0.55"/>
+
+      <!-- ================================================================ -->
+      <!-- SCENE LAYER 1: STATIC KEY EXPOSURE PROBLEM (Scene 0)             -->
+      <!-- ================================================================ -->
+      <g id="layerStatic" opacity="0">
+        <line class="attach" x1="295" y1="300" x2="365" y2="300"/>
+        <line class="flink" x1="665" y1="300" x2="885" y2="300" opacity="0.55"/>
+
+        <!-- Account Node -->
+        <g class="node" id="s0Account" transform="translate(190,300)">
+          <rect class="node-box" x="-105" y="-40" width="210" height="80" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-16" r="4"/>
+          <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT A</text>
+          <text class="node-sub" x="0" y="16" text-anchor="middle">R4XK...Q3TZ (static key)</text>
+        </g>
+
+        <!-- Static Auth Box -->
+        <g id="s0Gate">
+          <rect class="gate-box" id="s0GateBox" x="365" y="195" width="300" height="210" rx="12"/>
+          <text class="gate-title" x="385" y="223">STATIC AUTHORIZER · REUSED FOREVER</text>
+          <g class="chip amber" id="s0KeyBadge" transform="translate(515,254)">
+            <rect x="-118" y="-12" width="236" height="24" rx="7"/>
+            <text id="s0KeyBadgeText" x="0" y="4" text-anchor="middle">PUBLIC KEY: HIDDEN BEFORE 1ST SPEND</text>
+          </g>
+          <g class="chk" id="s0Chk1">
+            <circle cx="395" cy="305" r="7"/>
+            <path class="tick" d="M391.5 305 l2.6 2.9 l4.8 -5.6"/>
+            <text class="chk-text" x="412" y="309">verify_signature (TxID, pk)</text>
+          </g>
+          <g class="chk" id="s0Chk2">
+            <circle cx="395" cy="338" r="7"/>
+            <path class="cross" d="M390.5 333.5 L399.5 342.5 M399.5 333.5 L390.5 342.5"/>
+            <text class="chk-text" id="s0Chk2Text" x="412" y="342">no key rotation on spend</text>
+          </g>
+          <text class="gate-result" id="s0Result" x="385" y="382">→ public key stays on-chain at rest</text>
+        </g>
+
+        <!-- Exposed Target Radar (appears after first spend) -->
+        <g id="s0ExposureBox" opacity="0" transform="translate(515,478)">
+          <rect x="-210" y="-32" width="420" height="64" rx="10" fill="rgba(242,107,107,0.1)" stroke="var(--red)" stroke-width="1.3" stroke-dasharray="6 4"/>
+          <text x="0" y="-6" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--red)" letter-spacing=".08em">⚠ PUBLIC KEY REMAINS ON-CHAIN INDEFINITELY</text>
+          <text x="0" y="15" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">Adversary has unlimited time between spends to attack pk</text>
+        </g>
+
+        <!-- Recipient -->
+        <g class="node" id="s0Recv" transform="translate(990,300)">
+          <rect class="node-box" x="-105" y="-40" width="210" height="80" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-16" r="4"/>
+          <text class="node-title" x="0" y="-6" text-anchor="middle">RECIPIENT</text>
+          <text class="node-sub" x="0" y="16" text-anchor="middle">settles transfer</text>
+        </g>
+
+        <text class="stage-footnote" x="600" y="595" text-anchor="middle">
+          PROBLEM: A STATIC KEY REVEALS ITS PUBLIC KEY ON SPEND #1 AND NEVER ROTATES AWAY
+        </text>
+      </g>
+
+      <!-- ================================================================ -->
+      <!-- SCENE LAYER 2: HKDF SEED -> STAGE HASH CHAIN (Scene 1)           -->
+      <!-- ================================================================ -->
+      <g id="layerDerivation" opacity="0">
+        <!-- Left: Master BIP-39 Seed & HKDF Deriver -->
+        <g class="node" id="s1SeedNode" transform="translate(185,235)">
+          <rect class="node-box" x="-125" y="-54" width="250" height="108" rx="14"/>
+          <circle class="node-dot" cx="-102" cy="-30" r="4"/>
+          <text class="node-title" x="0" y="-22" text-anchor="middle">24-WORD MNEMONIC</text>
+          <text class="node-sub" x="0" y="0" text-anchor="middle">64-byte BIP-39 Seed</text>
+          <g class="chip teal" transform="translate(0,28)">
+            <rect x="-98" y="-11" width="196" height="22" rx="6"/>
+            <text x="0" y="4" text-anchor="middle">NO COUNTER STORED ON DISK</text>
+          </g>
+        </g>
+
+        <!-- HKDF-SHA-512 Box -->
+        <g id="s1HkdfBox" transform="translate(185,415)">
+          <rect class="gate-box" x="-125" y="-48" width="250" height="96" rx="12"/>
+          <text class="gate-title" x="0" y="-22" text-anchor="middle">HKDF-SHA-512 DERIVER</text>
+          <text class="node-sub" x="0" y="2" text-anchor="middle">salt: APLANE_ROTATING_HYBRID_V1</text>
+          <text class="node-sub" x="0" y="22" text-anchor="middle" fill="var(--teal)">info: tag ‖ GenesisHash ‖ u64be(i)</text>
+        </g>
+
+        <line class="attach" x1="185" y1="289" x2="185" y2="367"/>
+
+        <!-- Fan-out lines from HKDF to Stages 0..3 -->
+        <path class="derive-line" id="s1Line0" d="M310,415 C375,415 370,130 435,130"/>
+        <path class="derive-line" id="s1Line1" d="M310,415 C375,415 370,255 435,255"/>
+        <path class="derive-line" id="s1Line2" d="M310,415 C375,415 370,380 435,380"/>
+        <path class="derive-line" id="s1Line3" d="M310,415 C375,415 370,505 435,505"/>
+
+        <!-- 4 Stage Cards (i = 0, 1, 2, 3) -->
+        <g id="s1StageCards">
+          <!-- Stage 0 -->
+          <g class="node" id="s1Card0" transform="translate(765,130)">
+            <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
+            <text class="node-title" x="-308" y="-14">STAGE 0 (A₀ = ACCOUNT ADDRESS)</text>
+            <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_0) → R4XK...Q3TZ</text>
+            <g class="chip amber" transform="translate(65,-14)">
+              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #0</text>
+            </g>
+            <g class="chip blue" transform="translate(232,-14)">
+              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #0</text>
+            </g>
+            <g class="chip teal" transform="translate(148,18)">
+              <rect x="-158" y="-11" width="316" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">🔒 ON-CHAIN: 32B HASH ONLY · KEYS HIDDEN</text>
+            </g>
+          </g>
+
+          <!-- Stage 1 -->
+          <g class="node" id="s1Card1" transform="translate(765,255)">
+            <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
+            <text class="node-title" x="-308" y="-14">STAGE 1 (A₁ · NEXT AUTHORIZER)</text>
+            <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_1) → 7JQP...M9LA</text>
+            <g class="chip amber" transform="translate(65,-14)">
+              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #1</text>
+            </g>
+            <g class="chip blue" transform="translate(232,-14)">
+              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #1</text>
+            </g>
+            <g class="chip teal" transform="translate(148,18)">
+              <rect x="-158" y="-11" width="316" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">🔒 ON-CHAIN: 32B HASH ONLY · KEYS HIDDEN</text>
+            </g>
+          </g>
+
+          <!-- Stage 2 -->
+          <g class="node" id="s1Card2" transform="translate(765,380)">
+            <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
+            <text class="node-title" x="-308" y="-14">STAGE 2 (A₂ · FUTURE STAGE)</text>
+            <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_2) → X3VN...K4WP</text>
+            <g class="chip amber" transform="translate(65,-14)">
+              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #2</text>
+            </g>
+            <g class="chip blue" transform="translate(232,-14)">
+              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #2</text>
+            </g>
+            <g class="chip teal" transform="translate(148,18)">
+              <rect x="-158" y="-11" width="316" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">🔒 ON-CHAIN: 32B HASH ONLY · KEYS HIDDEN</text>
+            </g>
+          </g>
+
+          <!-- Stage 3 -->
+          <g class="node" id="s1Card3" transform="translate(765,505)">
+            <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
+            <text class="node-title" x="-308" y="-14">STAGE 3 … ∞ (UNBOUNDED CHAIN)</text>
+            <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_i) → DERIVED ON DEMAND</text>
+            <g class="chip amber" transform="translate(65,-14)">
+              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #i</text>
+            </g>
+            <g class="chip blue" transform="translate(232,-14)">
+              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #i</text>
+            </g>
+            <g class="chip teal" transform="translate(148,18)">
+              <rect x="-158" y="-11" width="316" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">🔒 ONLY LINK BETWEEN STAGES IS ONE-WAY HKDF</text>
+            </g>
+          </g>
+        </g>
+
+        <text class="stage-footnote" x="600" y="598" text-anchor="middle">
+          ONE 64B SEED EXPANDS TO EVERY STAGE · EACH STAGE EMBEDS FRESH FALCON-1024 + ED25519 KEYS
+        </text>
+      </g>
+
+      <!-- ================================================================ -->
+      <!-- SCENE LAYER 3: ROTATING HYBRID GATE & CONVEYOR (Scenes 2, 3, 4)  -->
+      <!-- ================================================================ -->
+      <g id="layerRotating" opacity="0">
+        <!-- Top Stage Conveyor / Timeline Bar -->
+        <g id="conveyorBar" transform="translate(600,48)">
+          <rect x="-470" y="-24" width="940" height="48" rx="10" fill="#0d1426" stroke="#22304d" stroke-width="1.2"/>
+          <text x="-445" y="4" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)" letter-spacing=".12em">AUTH CHAIN:</text>
+
+          <g id="pillStage0" transform="translate(-290,0)">
+            <rect id="pillRect0" x="-72" y="-14" width="144" height="28" rx="7" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
+            <text id="pillText0" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--teal)">A₀ · LIVE</text>
+          </g>
+          <text x="-198" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
+
+          <g id="pillStage1" transform="translate(-105,0)">
+            <rect id="pillRect1" x="-72" y="-14" width="144" height="28" rx="7" fill="#10192e" stroke="#2b3b5e" stroke-width="1.2"/>
+            <text id="pillText1" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)">A₁ · 🔒 HASHED</text>
+          </g>
+          <text x="-13" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
+
+          <g id="pillStage2" transform="translate(80,0)">
+            <rect id="pillRect2" x="-72" y="-14" width="144" height="28" rx="7" fill="#10192e" stroke="#2b3b5e" stroke-width="1.2"/>
+            <text id="pillText2" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)">A₂ · 🔒 HASHED</text>
+          </g>
+          <text x="172" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
+
+          <g id="pillStage3" transform="translate(265,0)">
+            <rect id="pillRect3" x="-72" y="-14" width="144" height="28" rx="7" fill="#10192e" stroke="#2b3b5e" stroke-width="1.2"/>
+            <text id="pillText3" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)">A₃ · 🔒 HASHED</text>
+          </g>
+          <text x="405" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--faint)">… Aₙ₊₁</text>
+        </g>
+
+        <!-- Permanent Account A Node (left) -->
+        <line class="attach" id="rotAttach" x1="290" y1="310" x2="355" y2="310"/>
+        <line class="flink" id="rotFlinkMain" x1="685" y1="310" x2="890" y2="310" opacity="0.55"/>
+        <line class="flink-bad" id="rotFlinkBad" x1="685" y1="310" x2="890" y2="450" opacity="0"/>
+        <line class="barrier" id="rotBarrier" x1="785" y1="360" x2="765" y2="410" opacity="0"/>
+
+        <g class="node" id="rotAccount" transform="translate(185,310)">
+          <rect class="node-box" x="-105" y="-44" width="210" height="88" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-20" r="4"/>
+          <text class="node-title" x="0" y="-10" text-anchor="middle">ACCOUNT A</text>
+          <text class="node-sub" x="0" y="10" text-anchor="middle">R4XK...Q3TZ (fixed)</text>
+          <text class="node-sub" id="rotAuthSub" x="0" y="28" text-anchor="middle" fill="var(--teal)">auth-addr: A₀ (Stage 0)</text>
+        </g>
+
+        <!-- Dual Stage Key Chips (above & below Account A) -->
+        <g class="chip amber" id="rotFalconChip" transform="translate(185,205)">
+          <rect x="-82" y="-12" width="164" height="24" rx="7"/>
+          <text id="rotFalconChipText" x="0" y="4" text-anchor="middle">FALCON-1024 KEY #0</text>
+        </g>
+        <g class="chip blue" id="rotEdChip" transform="translate(185,415)">
+          <rect x="-82" y="-12" width="164" height="24" rx="7"/>
+          <text id="rotEdChipText" x="0" y="4" text-anchor="middle">ED25519 KEY #0</text>
+        </g>
+
+        <!-- Retired Stage Ghost Slot (top above gate) -->
+        <g id="retiredSlot" transform="translate(520,122)" opacity="0">
+          <rect class="gate-box retired" x="-165" y="-26" width="330" height="52" rx="10"/>
+          <text id="retiredTitle" x="0" y="-4" text-anchor="middle" font-family="var(--mono)" font-size="11" font-weight="600" fill="var(--muted)">STAGE 0 (A₀) · RETIRED</text>
+          <text id="retiredSub" x="0" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--faint)">keys revealed on spend, but no longer auth-addr</text>
+        </g>
+
+        <!-- Active Stage Gate (center) -->
+        <g id="activeStageGate" transform="translate(0,0)">
+          <rect class="gate-box" id="rotGateBox" x="355" y="176" width="330" height="268" rx="12"/>
+          <text class="gate-title" id="rotGateTitle" x="374" y="202">STAGE 0 LOGICSIG (A₀) · TEAL V13</text>
+          <g class="chip teal" id="rotStageBadge">
+            <rect id="rotStageBadgeRect" x="372" y="214" width="230" height="22" rx="6"/>
+            <text id="rotStageBadgeText" x="487" y="229" text-anchor="middle">🔒 HASH-SHIELDED UNTIL SIGNING</text>
+          </g>
+
+          <!-- Check 1: Falcon-1024 -->
+          <g class="chk" id="rotChk1">
+            <circle cx="383" cy="264" r="7"/>
+            <path class="tick" d="M379.5 264 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 259.5 L387.5 268.5 M387.5 259.5 L378.5 268.5"/>
+            <text class="chk-text" x="400" y="268">falcon_verify (TxID, </text>
+            <text class="chk-text" x="596" y="268">)</text>
+          </g>
+
+          <!-- Check 2: Ed25519 -->
+          <g class="chk" id="rotChk2">
+            <circle cx="383" cy="296" r="7"/>
+            <path class="tick" d="M379.5 296 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 291.5 L387.5 300.5 M387.5 291.5 L378.5 300.5"/>
+            <text class="chk-text" x="400" y="300">ed25519verify_bare (TxID, </text>
+            <text class="chk-text" x="628" y="300">)</text>
+          </g>
+
+          <!-- Check 3: Mandatory RekeyTo Next Stage -->
+          <g class="chk" id="rotChk3">
+            <circle cx="383" cy="328" r="7"/>
+            <path class="tick" d="M379.5 328 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 323.5 L387.5 332.5 M387.5 323.5 L378.5 332.5"/>
+            <text class="chk-text" id="rotChk3Text" x="400" y="332">RekeyTo == A₁ (next stage)</text>
+          </g>
+
+          <!-- Check 4: CloseRemainderTo == Zero & window <= 100 -->
+          <g class="chk" id="rotChk4">
+            <circle cx="383" cy="360" r="7"/>
+            <path class="tick" d="M379.5 360 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 355.5 L387.5 364.5 M387.5 355.5 L378.5 364.5"/>
+            <text class="chk-text" id="rotChk4Text" x="400" y="364">no close-out · Δvalid ≤ 100 rds</text>
+          </g>
+
+          <!-- Check 5: Target stage open-check (Signer Rule 4) -->
+          <g class="chk" id="rotChk5">
+            <circle cx="383" cy="392" r="7"/>
+            <path class="tick" d="M379.5 392 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 387.5 L387.5 396.5 M387.5 387.5 L378.5 396.5"/>
+            <text class="chk-text" id="rotChk5Text" x="400" y="396">signer: stage 1 open-test passed</text>
+          </g>
+
+          <text class="gate-result" id="rotGateResult" x="374" y="426">→ spend + rotate to A₁ authorized</text>
+        </g>
+
+        <!-- Next Stage Queued Slot (bottom below gate) -->
+        <g id="queuedSlot" transform="translate(520,508)">
+          <rect class="gate-box queued" x="-165" y="-30" width="330" height="60" rx="10" fill="url(#hashShieldGrad)"/>
+          <text id="queuedTitle" x="0" y="-6" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)">NEXT: STAGE 1 (A₁ · 7JQP...M9LA)</text>
+          <text id="queuedSub" x="0" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">🔒 SHA-512/256 hash only · Falcon #1 + Ed25519 #1 hidden</text>
+        </g>
+
+        <!-- Recipient Node (right) -->
+        <g class="node" id="rotRecv" transform="translate(995,310)">
+          <rect class="node-box" x="-105" y="-40" width="210" height="80" rx="14"/>
+          <circle class="node-dot" cx="-83" cy="-16" r="4"/>
+          <text class="node-title" id="rotRecvTitle" x="0" y="-6" text-anchor="middle">RECIPIENT</text>
+          <text class="node-sub" id="rotRecvSub" x="0" y="16" text-anchor="middle">receives payment</text>
+        </g>
+
+        <!-- Attacker Node (Scene 4 / Scene 05 resilience test) -->
+        <g class="node warn" id="rotAttacker" transform="translate(995,455)" opacity="0">
+          <rect class="node-box" x="-105" y="-37" width="210" height="74" rx="14" stroke-dasharray="6 4"/>
+          <circle class="node-dot" cx="-83" cy="-15" r="4"/>
+          <text class="node-title" x="0" y="-6" text-anchor="middle" fill="var(--red)">ATTACKER</text>
+          <text class="node-sub" id="rotAttackerSub" x="0" y="16" text-anchor="middle" fill="var(--red)">replays revealed Stage 0</text>
+        </g>
+
+        <text class="stage-footnote" id="rotFootnote" x="600" y="598" text-anchor="middle">
+          EVERY LANDED SPEND REKEYS ACCOUNT A TO THE NEXT UNREVEALED STAGE (Aₙ → Aₙ₊₁)
+        </text>
+      </g>
+
+      <!-- Dynamic FX layer for packets, signal balls, badges, and stamps -->
+      <g id="fx"></g>
+    </svg>
+  </div>
+
+  <nav class="controls" aria-label="Scene controls">
+    <button class="ctl-btn" id="btnPrev">‹ Back</button>
+    <div class="scene-dots" id="sceneDots" role="tablist" aria-label="Choose scene">
+      <button class="scene-dot active" data-scene="0" aria-label="Scene 1"></button>
+      <button class="scene-dot" data-scene="1" aria-label="Scene 2"></button>
+      <button class="scene-dot" data-scene="2" aria-label="Scene 3"></button>
+      <button class="scene-dot" data-scene="3" aria-label="Scene 4"></button>
+      <button class="scene-dot" data-scene="4" aria-label="Scene 5"></button>
+    </div>
+    <span class="counter" id="counter">01 / 05</span>
+    <button class="ctl-btn" id="btnNext">Next ›</button>
+    <button class="ctl-btn" id="btnReplay">Replay</button>
+  </nav>
+
+  <div class="legend">
+    <div class="leg-item"><span class="leg-dot teal"></span>hash-shielded stage / verified spend</div>
+    <div class="leg-item"><span class="leg-dot amber"></span>Falcon-1024 signature (PQ)</div>
+    <div class="leg-item"><span class="leg-dot blue"></span>Ed25519 signature (classical)</div>
+    <div class="leg-item"><span class="leg-dot red"></span>exposed or rejected replay</div>
+  </div>
+
+  <section class="caption" aria-live="polite">
+    <div class="caption-inner" id="capInner">
+      <div class="kicker" id="capKicker"></div>
+      <h2 id="capTitle"></h2>
+      <p id="capBody"></p>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+const fx=$('fx');
+
+const STAGE_ADDRS=['R4XK...Q3TZ','7JQP...M9LA','X3VN...K4WP','B8MC...T2ZR','Q5LD...W9HX'];
+
+const scenes=[
+  {
+    title:'The static-key problem: spend once, expose your public key forever',
+    body:'In a conventional account, your public key stays hidden behind your 32-byte address hash only until your <strong>first transaction</strong>. The moment you sign and submit a spend, the public key is published on-chain and remains the account’s active authorizer indefinitely—giving a future quantum or classical adversary unlimited time at rest to attack it.'
+  },
+  {
+    title:'One seed, an unbounded chain of hash-shielded hybrid stages',
+    body:'<code>aplane.rotating-hybrid.v1</code> replaces a static key with a deterministic sequence of per-stage TEAL v13 LogicSigs derived from one 24-word BIP-39 seed via <strong>HKDF-SHA-512</strong> (bound to the network genesis hash and stage number <code>i</code>). Each stage embeds a fresh <strong>Falcon-1024</strong> public key and a fresh <strong>Ed25519</strong> public key. Until stage <code>i</code> signs, only its 32-byte <code>SHA-512/256("Program" ‖ bytecode)</code> address <code>Aᵢ</code> exists on-chain.'
+  },
+  {
+    title:'Spend & atomic rotation: the spend that reveals A₀ hands authority to A₁',
+    body:'To spend from Stage 0, the signer first runs an open-test proving Stage 1 can sign later, then signs the transaction ID with <strong>both</strong> Stage 0’s Falcon-1024 key and Ed25519 key. The TEAL v13 program verifies both signatures on-chain, forbids closing the account, enforces a tight validity window (<code>≤ 100</code> rounds), and requires <code>RekeyTo = A₁</code>. In the same block that <code>A₀</code>’s keys are revealed, authority moves to the unrevealed <code>A₁</code>.'
+  },
+  {
+    title:'Walking forward through fresh hashes — with a stateless signer',
+    body:'Account A’s address (<code>R4XK...Q3TZ</code>) never changes, while its <code>auth-addr</code> walks monotonically forward on every spend: <code>A₀ → A₁ → A₂ → A₃…</code>. Crucially, the signer stores <strong>no mutable stage counter</strong> in the key file: it reads the live authorizer from the chain, resolves <code>n</code> against its derivable stage table, and always re-derives <code>Aₙ₊₁</code> directly from the seed—so backups never go stale.'
+  },
+  {
+    title:'Defense in depth: hash preimage at rest, dual-hybrid in flight, dead keys behind',
+    body:'<strong>1) Retired stages are powerless:</strong> even if an adversary later breaks or steals revealed Stage 0 keys, the ledger rejects any transaction signed by <code>A₀</code> because <code>auth-addr</code> has already moved to <code>A₁</code>.<br><strong>2) Hybrid in flight, hash at rest:</strong> during the ~3-second confirmation window, an attacker would have to break <em>both</em> Falcon-1024 and Ed25519 within 100 rounds; once confirmed, the account is back behind a pure SHA-512/256 preimage shield.'
+  }
+];
+
+let token={alive:false};
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+function sleep(ms){ const t=token; return new Promise(r=>setTimeout(()=>r(t.alive), REDUCED?0:ms)); }
+function tween(dur, fn){
+  return new Promise(res=>{
+    const t=token, t0=performance.now();
+    (function step(now){
+      if(!t.alive){ res(false); return; }
+      const p=Math.min(1,(now-t0)/dur);
+      fn(p);
+      p<1?requestAnimationFrame(step):res(true);
+    })(t0);
+  });
+}
+function mk(name,attrs,parent){
+  const e=document.createElementNS(NS,name);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  (parent||fx).appendChild(e);
+  return e;
+}
+function flash(id,ms=950,cls='lit'){
+  const e=$(id); if(!e) return;
+  e.classList.add(cls);
+  setTimeout(()=>e.classList.remove(cls),ms);
+}
+function mark(x,y,ok=true){
+  const pos2=mk('g',{transform:`translate(${x},${y})`});
+  const g=mk('g',{class:(REDUCED?'':'mark ')+(ok?'mark-ok':'mark-no')},pos2);
+  mk('circle',{cx:0,cy:0,r:13},g);
+  if(ok) mk('path',{d:'M-5.5 0 l3.7 4.1 l7.2 -8.3'},g);
+  else { mk('path',{d:'M-5 -5 L5 5'},g); mk('path',{d:'M5 -5 L-5 5'},g); }
+  if(!REDUCED) setTimeout(()=>pos2.remove(),2000);
+}
+function stamp(x,y,text,teal=false){
+  const pos2=mk('g',{transform:`translate(${x},${y})`});
+  const g=mk('g',{class:(REDUCED?'':'stamp')+(teal?' teal':'')},pos2);
+  const w=text.length*9.8+28;
+  mk('rect',{x:-w/2,y:-16,width:w,height:32,rx:6},g);
+  const t=mk('text',{x:0,y:5,'text-anchor':'middle'},g);
+  t.textContent=text;
+  if(!REDUCED) setTimeout(()=>pos2.remove(),2400);
+}
+function makeBubble(label,x,y,kind=''){
+  const g=mk('g',{class:'pkt'+(kind?' '+kind:''),transform:`translate(${x},${y})`,opacity:'0'});
+  const w=label.length*6.8+24;
+  mk('rect',{class:'pkt-box',x:-w/2,y:-13,width:w,height:26,rx:13},g);
+  const t=mk('text',{x:0,y:4,'text-anchor':'middle'},g); t.textContent=label;
+  return g;
+}
+async function fadeTo(g,target,dur){
+  if(REDUCED){ g.setAttribute('opacity',String(target)); return true; }
+  const s=parseFloat(g.getAttribute('opacity')||'0');
+  return await tween(dur,p=>g.setAttribute('opacity',(s+(target-s)*p).toFixed(3)));
+}
+async function moveBubble(g,x1,y1,x2,y2,dur,fadeEnd=true){
+  if(REDUCED){
+    g.setAttribute('transform',`translate(${x2},${y2})`);
+    return true;
+  }
+  return await tween(dur,p=>{
+    const e2=ease(p);
+    g.setAttribute('transform',`translate(${lerp(x1,x2,e2)},${lerp(y1,y2,e2)})`);
+    if(fadeEnd) g.setAttribute('opacity',(p>.88?(1-p)/.12:1).toFixed(3));
+  });
+}
+
+function makeSigToken(label,x,y,color){
+  const g=mk('g',{transform:`translate(${x},${y})`,opacity:'0.95'});
+  const w=label.length*6.6+14;
+  mk('rect',{x:-w/2,y:-10,width:w,height:20,rx:6,fill:'#0c1324',stroke:color,'stroke-width':'1.1'},g);
+  const t=mk('text',{
+    x:0,y:3.5,'text-anchor':'middle',
+    'font-family':"ui-monospace,'SF Mono',Menlo,Consolas,monospace",
+    'font-size':'10.5','font-weight':'600',fill:color
+  },g);
+  t.textContent=label;
+  return g;
+}
+
+async function slideDualSignals(fFrom,fTo,eFrom,eTo,dur,fColor='#f0b45c',eColor='#6eb5ff'){
+  const bF=makeSigToken('sig_F',fFrom[0],fFrom[1],fColor);
+  const bE=makeSigToken('sig_E',eFrom[0],eFrom[1],eColor);
+  if(REDUCED){
+    bF.setAttribute('transform',`translate(${fTo[0]},${fTo[1]})`);
+    bE.setAttribute('transform',`translate(${eTo[0]},${eTo[1]})`);
+    return [bF,bE];
+  }
+  const ok=await tween(dur,p=>{
+    const e=ease(p);
+    bF.setAttribute('transform',`translate(${lerp(fFrom[0],fTo[0],e)},${lerp(fFrom[1],fTo[1],e)})`);
+    bE.setAttribute('transform',`translate(${lerp(eFrom[0],eTo[0],e)},${lerp(eFrom[1],eTo[1],e)})`);
+  });
+  if(!ok){ bF.remove(); bE.remove(); return null; }
+  return [bF,bE];
+}
+
+/* Update Top Conveyor Pills for active stage n */
+function updateConveyorPills(activeStage, signingNow=false){
+  for(let i=0;i<4;i++){
+    const rect=$('pillRect'+i), txt=$('pillText'+i);
+    if(!rect || !txt) continue;
+    if(i < activeStage){
+      rect.setAttribute('fill','rgba(90,100,128,0.12)');
+      rect.setAttribute('stroke','#34405a');
+      txt.setAttribute('fill','#6d7894');
+      txt.textContent=`A${subNum(i)} · RETIRED`;
+    } else if(i === activeStage){
+      if(signingNow){
+        rect.setAttribute('fill','rgba(240,180,92,0.18)');
+        rect.setAttribute('stroke','#f0b45c');
+        txt.setAttribute('fill','#f0b45c');
+        txt.textContent=`A${subNum(i)} · SIGNING`;
+      } else {
+        rect.setAttribute('fill','rgba(79,224,196,0.15)');
+        rect.setAttribute('stroke','#4fe0c4');
+        txt.setAttribute('fill','#4fe0c4');
+        txt.textContent=`A${subNum(i)} · LIVE 🔒`;
+      }
+    } else {
+      rect.setAttribute('fill','#10192e');
+      rect.setAttribute('stroke','#2b3b5e');
+      txt.setAttribute('fill','#8a94ac');
+      txt.textContent=`A${subNum(i)} · 🔒 HASHED`;
+    }
+  }
+}
+function subNum(n){
+  return ['₀','₁','₂','₃','₄'][n]||String(n);
+}
+
+/* Configure Stage Gate UI for stage n */
+function configureRotatingStage(n, showRetired){
+  const next=n+1;
+  $('rotAuthSub').textContent=`auth-addr: A${subNum(n)} (Stage ${n})`;
+  $('rotFalconChipText').textContent=`FALCON-1024 KEY #${n}`;
+  $('rotEdChipText').textContent=`ED25519 KEY #${n}`;
+  $('rotGateTitle').textContent=`STAGE ${n} LOGICSIG (A${subNum(n)}) · TEAL V13`;
+  $('rotStageBadge').setAttribute('class','chip teal');
+  $('rotStageBadgeText').textContent='🔒 HASH-SHIELDED UNTIL SIGNING';
+  $('rotChk3Text').textContent=`RekeyTo == A${subNum(next)} (Stage ${next})`;
+  $('rotChk4Text').textContent='no close-out · Δvalid ≤ 100 rds';
+  $('rotChk5Text').textContent=`signer: stage ${next} open-test passed`;
+  $('rotGateResult').textContent=`→ spend + rotate to A${subNum(next)} authorized`;
+  $('rotGateResult').classList.remove('on','fail');
+  ['rotChk1','rotChk2','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.remove('done','fail'));
+
+  $('queuedTitle').textContent=`NEXT: STAGE ${next} (A${subNum(next)} · ${STAGE_ADDRS[next]||'DERIVED'})`;
+  $('queuedSub').textContent=`🔒 SHA-512/256 hash only · Falcon #${next} + Ed25519 #${next} hidden`;
+  $('queuedSlot').setAttribute('transform','translate(520,508)');
+  $('queuedSlot').setAttribute('opacity','1');
+
+  $('activeStageGate').setAttribute('transform','translate(0,0)');
+  $('activeStageGate').setAttribute('opacity','1');
+
+  if(showRetired && n>0){
+    $('retiredTitle').textContent=`STAGE ${n-1} (A${subNum(n-1)}) · RETIRED`;
+    $('retiredSub').textContent=`keys revealed on spend #${n}, no longer auth-addr`;
+    $('retiredSlot').setAttribute('transform','translate(520,122)');
+    $('retiredSlot').setAttribute('opacity','0.92');
+  } else {
+    $('retiredSlot').setAttribute('opacity','0');
+  }
+  updateConveyorPills(n, false);
+}
+
+/* Animate atomic rotation from stage n to stage n+1 */
+async function animateStageRotation(n){
+  const next=n+1, afterNext=n+2;
+  const badge=makeBubble(`REKEY → A${subNum(next)}`,520,310,'amber');
+  await fadeTo(badge,1,150);
+  let swapped=false;
+  const ok=await tween(860,p=>{
+    if(p<0.48){
+      const u=ease(p/0.48);
+      $('activeStageGate').setAttribute('transform',`translate(0,${lerp(0,-150,u)})`);
+      $('activeStageGate').setAttribute('opacity',(1-u).toFixed(3));
+      $('queuedSlot').setAttribute('transform',`translate(520,${lerp(508,350,u)})`);
+      $('queuedSlot').setAttribute('opacity',(1-u*0.7).toFixed(3));
+      $('retiredSlot').setAttribute('opacity',(1-u).toFixed(3));
+    } else {
+      if(!swapped){
+        swapped=true;
+        configureRotatingStage(next, true);
+        $('queuedTitle').textContent=`NEXT: STAGE ${afterNext} (A${subNum(afterNext)} · ${STAGE_ADDRS[afterNext]||'DERIVED'})`;
+        $('queuedSub').textContent=`🔒 SHA-512/256 hash only · Falcon #${afterNext} + Ed25519 #${afterNext} hidden`;
+      }
+      const v=ease((p-0.48)/0.52);
+      $('activeStageGate').setAttribute('transform',`translate(0,${lerp(135,0,v)})`);
+      $('activeStageGate').setAttribute('opacity',v.toFixed(3));
+      $('retiredSlot').setAttribute('transform',`translate(520,${lerp(165,122,v)})`);
+      $('retiredSlot').setAttribute('opacity',(v*0.92).toFixed(3));
+      $('queuedSlot').setAttribute('transform',`translate(520,${lerp(555,508,v)})`);
+      $('queuedSlot').setAttribute('opacity',v.toFixed(3));
+    }
+  });
+  badge.remove();
+  if(!ok) return false;
+  configureRotatingStage(next, true);
+  flash('rotAccount',900);
+  return true;
+}
+
+/* Show only the requested top-level SVG layer */
+function showLayer(layerId){
+  ['layerStatic','layerDerivation','layerRotating'].forEach(id=>{
+    $(id).setAttribute('opacity', id===layerId ? '1' : '0');
+  });
+}
+
+/* ======================================================================== */
+/* SCENE LOOPS                                                              */
+/* ======================================================================== */
+
+/* Scene 0: Static Key Exposure Loop */
+async function loopScene0(){
+  const t=token;
+  showLayer('layerStatic');
+  while(t.alive){
+    /* Reset before 1st spend */
+    $('s0Chk1').classList.remove('done','fail');
+    $('s0Chk2').classList.remove('done','fail');
+    $('s0Result').classList.remove('on','fail');
+    $('s0KeyBadge').setAttribute('class','chip teal');
+    $('s0KeyBadgeText').textContent='PUBLIC KEY: HIDDEN BEFORE 1ST SPEND';
+    $('s0ExposureBox').setAttribute('opacity','0');
+    $('s0GateBox').style.stroke='rgba(79,224,196,.48)';
+
+    if(!await sleep(500)) return;
+    flash('s0Account');
+    const bub=makeBubble('pay 500 (spend #1)',685,300);
+    if(!await fadeTo(bub,1,240)){ bub.remove(); return; }
+    bub.classList.add('staged');
+    if(!await sleep(360)){ bub.remove(); return; }
+
+    /* Sign & reveal pk */
+    $('s0Chk1').classList.add('done');
+    $('s0KeyBadge').setAttribute('class','chip red');
+    $('s0KeyBadgeText').textContent='PUBLIC KEY: REVEALED ON-CHAIN';
+    if(!await sleep(520)){ bub.remove(); return; }
+
+    $('s0Chk2').classList.add('fail');
+    $('s0Result').classList.add('fail');
+    $('s0GateBox').style.stroke='rgba(242,107,107,.65)';
+    if(!await sleep(420)){ bub.remove(); return; }
+
+    bub.classList.remove('staged');
+    if(!await moveBubble(bub,685,300,885,300,1150)){ bub.remove(); return; }
+    bub.remove();
+    flash('s0Recv');
+    mark(990,242,true);
+
+    /* Now show persistent exposure at rest */
+    if(!await fadeTo($('s0ExposureBox'),1,380)) return;
+    flash('s0Account',1600,'warn');
+    stamp(515,152,'KEY EXPOSED AT REST');
+    if(!await sleep(2600)) return;
+  }
+}
+
+/* Scene 1: Seed -> HKDF Stage Chain Loop */
+async function loopScene1(){
+  const t=token;
+  showLayer('layerDerivation');
+  const cards=['s1Card0','s1Card1','s1Card2','s1Card3'];
+  const yTargets=[130,255,380,505];
+  while(t.alive){
+    flash('s1SeedNode',1000);
+    if(!await sleep(450)) return;
+    for(let i=0;i<cards.length;i++){
+      if(!t.alive) return;
+      const pulse=makeSigToken(`HKDF(stage ${i<3?i:'i'})`,310,415,'#4fe0c4');
+      const ok=await tween(520,p=>{
+        const e=ease(p);
+        pulse.setAttribute('transform',`translate(${lerp(310,435,e)},${lerp(415,yTargets[i],e)})`);
+      });
+      pulse.remove();
+      if(!ok) return;
+      flash(cards[i],950);
+      if(!await sleep(240)) return;
+    }
+    stamp(765,64,'ALL PUBLIC KEYS HIDDEN BEHIND 32B HASHES',true);
+    if(!await sleep(2400)) return;
+  }
+}
+
+/* Run one complete spend + dual-verify + rotation cycle on layerRotating */
+async function runSingleSpendCycle(stageIdx, amountLabel){
+  const next=stageIdx+1;
+  configureRotatingStage(stageIdx, stageIdx>0);
+  $('rotAttacker').setAttribute('opacity','0');
+  $('rotFlinkBad').setAttribute('opacity','0');
+  $('rotBarrier').setAttribute('opacity','0');
+  $('rotRecv').setAttribute('transform','translate(995,310)');
+  $('rotFlinkMain').setAttribute('y2','310');
+
+  flash('rotAccount');
+  const bub=makeBubble(`${amountLabel} + Rekey→A${subNum(next)}`,710,310);
+  if(!await fadeTo(bub,1,240)){ bub.remove(); return false; }
+  bub.classList.add('staged');
+
+  /* Step 1: Signer checks Stage n+1 opens before releasing Stage n sig */
+  if(!await sleep(280)){ bub.remove(); return false; }
+  $('rotChk5').classList.add('done');
+  if(!await sleep(320)){ bub.remove(); return false; }
+
+  /* Step 2: Dual signals (Falcon-1024 + Ed25519) travel into TEAL gate */
+  updateConveyorPills(stageIdx, true);
+  $('rotStageBadge').setAttribute('class','chip amber');
+  $('rotStageBadgeText').textContent=`SIGNING: STAGE ${stageIdx} KEYS REVEALED IN TX`;
+
+  const balls=await slideDualSignals([185,205],[562,264],[185,415],[594,296],660);
+  if(!balls){ bub.remove(); return false; }
+  const [bF,bE]=balls;
+
+  if(!await sleep(200)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  $('rotChk1').classList.add('done');
+  $('rotChk2').classList.add('done');
+  if(!await sleep(420)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+
+  $('rotChk3').classList.add('done');
+  $('rotChk4').classList.add('done');
+  if(!await sleep(380)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+
+  $('rotGateResult').classList.add('on');
+  if(!await sleep(360)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+
+  bF.remove(); bE.remove();
+  bub.classList.remove('staged');
+
+  /* Step 3: Payment settles AND stage rotates atomically */
+  const moveP=moveBubble(bub,710,310,890,310,1050);
+  const rotP=animateStageRotation(stageIdx);
+  const [ok1,ok2]=await Promise.all([moveP,rotP]);
+  bub.remove();
+  if(!ok1 || !ok2) return false;
+
+  flash('rotRecv');
+  mark(995,252,true);
+  return true;
+}
+
+/* Scene 2: Single Spend & Atomic Rotation (Stage 0 -> Stage 1) */
+async function loopScene2(){
+  const t=token;
+  showLayer('layerRotating');
+  $('rotFootnote').textContent='THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)';
+  while(t.alive){
+    if(!await runSingleSpendCycle(0, 'pay 500')) return;
+    stamp(520,122,'A₀ RETIRED · A₁ NOW ACTIVE & HASH-SHIELDED',true);
+    if(!await sleep(2500)) return;
+  }
+}
+
+/* Scene 3: Multi-Spend Monotonic Walk (A0 -> A1 -> A2 -> A3) */
+async function loopScene3(){
+  const t=token;
+  showLayer('layerRotating');
+  $('rotFootnote').textContent='STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED';
+  const labels=['pay 250','pay 800','pay 1,200'];
+  while(t.alive){
+    for(let s=0;s<3;s++){
+      if(!t.alive) return;
+      if(!await runSingleSpendCycle(s, labels[s])) return;
+      if(!await sleep(1250)) return;
+    }
+    if(!await sleep(900)) return;
+  }
+}
+
+/* Scene 4 (Scene 05): Resilience Against Retired-Key Replay & Single-Primitive Break */
+async function loopScene4(){
+  const t=token;
+  showLayer('layerRotating');
+  $('rotFootnote').textContent='RETIRED KEYS CANNOT AUTHORIZE SPENDS · IN-FLIGHT SPENDS REQUIRE BOTH FALCON + ED25519';
+
+  while(t.alive){
+    /* Scenario A: Attacker tries to spend using revealed/retired Stage 0 keys while Account is at Stage 1 */
+    configureRotatingStage(1, true);
+    $('rotRecv').setAttribute('transform','translate(995,220)');
+    $('rotFlinkMain').setAttribute('y2','220');
+    $('rotAttacker').setAttribute('opacity','1');
+    $('rotAttackerSub').textContent='replays revealed Stage 0 keys';
+    $('rotFlinkBad').setAttribute('opacity','0.5');
+    $('rotBarrier').setAttribute('opacity','0.35');
+    $('rotBarrier').classList.remove('hot');
+
+    if(!await sleep(450)) return;
+    flash('rotAttacker',1000,'warn');
+    const badBub=makeBubble('forged tx (signed by retired A₀)',710,335,'bad');
+    if(!await fadeTo(badBub,1,220)){ badBub.remove(); return; }
+    badBub.classList.add('staged');
+
+    const ballsA=await slideDualSignals([520,122],[562,264],[520,122],[594,296],640,'#f26b6b','#f26b6b');
+    if(!ballsA){ badBub.remove(); return; }
+    const [bF1,bE1]=ballsA;
+
+    if(!await sleep(220)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
+    $('rotChk1').classList.add('fail');
+    $('rotChk2').classList.add('fail');
+    $('rotGateResult').textContent='→ rejected: account auth-addr is A₁, not A₀';
+    $('rotGateResult').classList.add('fail');
+    $('rotBarrier').classList.add('hot');
+
+    if(!await sleep(480)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
+    bF1.remove(); bE1.remove();
+    badBub.classList.remove('staged');
+    if(!await moveBubble(badBub,710,335,775,385,720,false)){ badBub.remove(); return; }
+    mark(775,385,false);
+    stamp(775,445,'RETIRED STAGE REJECTED');
+    if(!await sleep(300)){ badBub.remove(); return; }
+    badBub.remove();
+    if(!await sleep(1700)) return;
+
+    /* Scenario B: Legitimate Stage 1 dual-signed spend succeeds and rotates to Stage 2 */
+    configureRotatingStage(1, true);
+    $('rotRecv').setAttribute('transform','translate(995,220)');
+    $('rotFlinkMain').setAttribute('y2','220');
+    $('rotAttacker').setAttribute('opacity','1');
+    $('rotFlinkBad').setAttribute('opacity','0.25');
+    $('rotBarrier').setAttribute('opacity','0.2');
+    $('rotBarrier').classList.remove('hot');
+
+    flash('rotAccount');
+    const okBub=makeBubble('pay 500 + Rekey→A₂',710,295);
+    if(!await fadeTo(okBub,1,220)){ okBub.remove(); return; }
+    okBub.classList.add('staged');
+    $('rotChk5').classList.add('done');
+
+    const ballsB=await slideDualSignals([185,205],[562,264],[185,415],[594,296],640);
+    if(!ballsB){ okBub.remove(); return; }
+    const [bF2,bE2]=ballsB;
+    if(!await sleep(220)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
+    $('rotChk1').classList.add('done');
+    $('rotChk2').classList.add('done');
+    $('rotChk3').classList.add('done');
+    $('rotChk4').classList.add('done');
+    $('rotGateResult').classList.add('on');
+    if(!await sleep(420)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
+    bF2.remove(); bE2.remove();
+    okBub.classList.remove('staged');
+
+    const mP=moveBubble(okBub,710,295,890,220,1000);
+    const rP=animateStageRotation(1);
+    const [mOk,rOk]=await Promise.all([mP,rP]);
+    okBub.remove();
+    if(!mOk || !rOk) return;
+    flash('rotRecv');
+    mark(995,164,true);
+    if(!await sleep(2000)) return;
+  }
+}
+
+/* Static still frame for prefers-reduced-motion */
+function staticFrame(n){
+  if(n===0){
+    showLayer('layerStatic');
+    $('s0Chk1').classList.add('done');
+    $('s0Chk2').classList.add('fail');
+    $('s0KeyBadge').setAttribute('class','chip red');
+    $('s0KeyBadgeText').textContent='PUBLIC KEY: REVEALED ON-CHAIN';
+    $('s0Result').classList.add('fail');
+    $('s0ExposureBox').setAttribute('opacity','1');
+  } else if(n===1){
+    showLayer('layerDerivation');
+  } else if(n===2){
+    showLayer('layerRotating');
+    configureRotatingStage(1, true);
+    ['rotChk1','rotChk2','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
+    $('rotGateResult').classList.add('on');
+    mark(995,252,true);
+  } else if(n===3){
+    showLayer('layerRotating');
+    configureRotatingStage(2, true);
+    ['rotChk1','rotChk2','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
+    $('rotGateResult').classList.add('on');
+    mark(995,252,true);
+  } else {
+    showLayer('layerRotating');
+    configureRotatingStage(1, true);
+    $('rotRecv').setAttribute('transform','translate(995,220)');
+    $('rotFlinkMain').setAttribute('y2','220');
+    $('rotAttacker').setAttribute('opacity','1');
+    $('rotFlinkBad').setAttribute('opacity','0.5');
+    $('rotBarrier').setAttribute('opacity','1');
+    $('rotBarrier').classList.add('hot');
+    mark(775,385,false);
+    mark(995,164,true);
+  }
+}
+
+function runLoop(n){
+  if(REDUCED){ staticFrame(n); return; }
+  if(n===0) loopScene0();
+  else if(n===1) loopScene1();
+  else if(n===2) loopScene2();
+  else if(n===3) loopScene3();
+  else loopScene4();
+}
+
+let current=-1, busy=false;
+function updateCaption(n){
+  const sc=scenes[n], inner=$('capInner');
+  inner.classList.remove('swap'); void inner.offsetWidth; inner.classList.add('swap');
+  const pad=k=>String(k).padStart(2,'0');
+  $('capKicker').textContent='SCENE '+pad(n+1);
+  $('capTitle').textContent=sc.title;
+  $('capBody').innerHTML=sc.body;
+  $('counter').textContent=pad(n+1)+' / '+pad(scenes.length);
+  $('btnPrev').disabled=(n===0);
+  $('btnNext').disabled=(n===scenes.length-1);
+  document.querySelectorAll('.scene-dot').forEach((d,idx)=>{
+    d.classList.toggle('active', idx===n);
+  });
+}
+
+async function setScene(n){
+  n=Math.max(0,Math.min(scenes.length-1,n));
+  if(busy) return;
+  const first=current<0;
+  if(!first && n===current) return;
+  busy=true;
+  token.alive=false; token={alive:true};
+  while(fx.firstChild) fx.firstChild.remove();
+  document.querySelectorAll('.lit,.warn').forEach(e=>e.classList.remove('lit','warn'));
+  current=n;
+  updateCaption(n);
+  runLoop(n);
+  busy=false;
+}
+
+function restart(){
+  if(busy) return;
+  if(current!==0){ setScene(0); return; }
+  busy=true;
+  token.alive=false; token={alive:true};
+  while(fx.firstChild) fx.firstChild.remove();
+  document.querySelectorAll('.lit,.warn').forEach(e=>e.classList.remove('lit','warn'));
+  updateCaption(0);
+  runLoop(0);
+  busy=false;
+}
+
+(function(){
+  $('btnPrev').addEventListener('click',()=>setScene(current-1));
+  $('btnNext').addEventListener('click',()=>setScene(current+1));
+  $('btnReplay').addEventListener('click',restart);
+  document.querySelectorAll('.scene-dot').forEach(btn=>{
+    btn.addEventListener('click',()=>setScene(Number(btn.dataset.scene)));
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight') setScene(current+1);
+    if(e.key==='ArrowLeft') setScene(current-1);
+  });
+  setScene(0);
+})();
+</script>
+</body>
+</html>
