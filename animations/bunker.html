@@ -451,14 +451,14 @@ async function ch1(){
     for(let i=0;i<3;i++){
       const c=cards[i], next=cards[i+1];
       /* Spend: the signature carries the public key onto the chain. */
-      const pay=bubble('pay 2 ETH (signed)',c.x,300,'amber');
+      const pay=bubble('pay 2 ETH (signed)',c.x,180,'amber');
       if(!await fadeTo(pay,1,280)){ pay.remove(); return; }
       if(!await sleep(350)){ pay.remove(); return; }
       c.key.set('red','PUBLIC KEY · ON CHAIN');
       c.g.setAttribute('class','node bad');
       bal-=2; c.bal.textContent=`balance: ${bal} ETH`;
       spends++; tally();
-      const ok=await move(pay,c.x,300,c.x,445,1000);
+      const ok=await move(pay,c.x,180,c.x,82,1000);
       pay.remove(); if(!ok) return;
       el('line',{class:'flink-bad',x1:600,y1:478,x2:c.x,y2:336},lines);
       if(!await sleep(650)) return;
