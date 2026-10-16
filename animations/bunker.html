@@ -20,6 +20,7 @@
   --page-border:#d7dacd; --ink-teal:#0a7d6b;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
 html{color-scheme:light}
 body{
   background:var(--page-bg);color:var(--page-ink);font-family:var(--sans);
@@ -265,17 +266,23 @@ const chapters=[
     take:'The problem with bunker mode isn’t the new key. It’s the new address.'
   },
   {
-    title:'Algorand’s answer: change the key, keep the address',
+    title:'Algorand Rekeying: change the key, keep the address',
     run:ch3,
-    body:`<p>Algorand separates who an account is from who may sign for it. Every account can name another address as its ${T('auth-addr')}, and a single transaction can change it. This is called a ${T('rekey')}. The account’s address, balance, assets and history stay exactly where they are.</p>
-<p>So instead of moving the funds to a fresh key after every spend, we point the account at a fresh key. To keep each new key hidden until it is used, the authorizer is a ${T('LogicSig')}: its address is a hash of a small program, and the public keys written inside it stay hidden until the program is submitted to sign.</p>`,
+    body:`<p>Algorand can separate who an account is from who may sign for it. Every account can name another address as its ${T('auth-addr')}, and a single transaction can change it. This is called a ${T('rekey')}. The account’s address, balance, assets and history stay exactly where they are.</p>
+<p>So instead of moving the funds to a fresh key after every spend, we point the account at a fresh key. To keep each new key hidden until it is used, the authorizer is a ${T('LogicSig')}: its address is a hash of a small program that does not exist on chain. There literally is no way an attacker can see the public keys written inside it until the program is submitted to sign a transaction.</p>`,
     take:'Rekeying moves the key, not the money.'
   },
   {
-    title:'Why three keys?',
+    title:'One hard problem, one point of failure',
     run:ch4,
-    body:`<p>Why not just switch to a ${T('post-quantum')} key? Because post-quantum only means “believed safe against quantum computers”. Post-quantum schemes rest on problems believed to be hard too, and they are much younger than ${T('elliptic curve','elliptic curve')}s. If AI-driven mathematics can break one hard problem, nobody can promise which one.</p>
-<p>So every key in this design is really three, from three unrelated families, and every spend needs all three signatures: <strong>Ed25519</strong> (elliptic curve, decades of scrutiny), <strong>Falcon-1024</strong> (${T('lattice')}, standardized for post-quantum use), and <strong>WOTS</strong>, a ${T('hash-based signature')} built from SHA-256 alone, the most conservative assumption in cryptography.</p>`,
+    body:`<p>AI might break a cryptographic scheme—but nobody knows which one.</p>
+<p>An account that rests on a single signature scheme, even a ${T('post-quantum')} one, falls the moment that scheme does.</p>`,
+    take:'One hard problem is one point of failure.'
+  },
+  {
+    title:'Triple Signing with a one-round deadline',
+    run:ch5,
+    body:`<p>Every key in this design is really three, from three unrelated families, and every spend needs all three signatures: <strong>Ed25519</strong> (${T('elliptic curve')}, decades of scrutiny), <strong>Falcon-1024</strong> (${T('lattice')}, standardized for ${T('post-quantum')} use), and <strong>WOTS</strong>, a ${T('hash-based signature')} built from SHA-256 alone.</p>`,
     take:'Three unrelated hard problems: a forger has to win all three.'
   },
   {
@@ -605,12 +612,32 @@ async function strike(x,yTop,yHit){
 }
 async function ch4(){
   const t=token;
+  topLabel('ONE HARD PROBLEM · ONE POINT OF FAILURE');
+  footnote('“POST-QUANTUM” MEANS BELIEVED SAFE, NOT PROVEN SAFE');
+  const one=shield(SCENE,600,280,'amber','POST-QUANTUM','one scheme only');
+  const lock=chip(SCENE,600,440,250,'ACCOUNT LOCKED','teal');
+  el('line',{class:'flink-dim',x1:600,y1:370,x2:600,y2:428},SCENE);
+  while(t.alive){
+    /* A single assumption is a single point of failure. */
+    one.g.setAttribute('class','shield amber'); one.s.textContent='one scheme only';
+    lock.set('teal','ACCOUNT LOCKED');
+    if(!await sleep(1200)) return;
+    if(!await strike(600,90,200)) return;
+    one.g.setAttribute('class','shield amber broken'); one.s.textContent='broken by new math';
+    if(!await sleep(500)) return;
+    lock.set('red','ACCOUNT OPEN TO A FORGER');
+    mark(755,440,false);
+    if(REDUCED) return;
+    if(!await sleep(3200)) return;
+    clearFx();
+  }
+}
+
+async function ch5(){
+  const t=token;
   const label=el('text',{class:'top-label',x:600,y:56,'text-anchor':'middle'},SCENE,'');
   const foot=el('text',{class:'stage-footnote',x:600,y:604,'text-anchor':'middle'},SCENE,'');
-  const partA=el('g',{},SCENE), partB=el('g',{},SCENE);
-  const one=shield(partA,600,280,'amber','POST-QUANTUM','one scheme only');
-  const lockA=chip(partA,600,440,250,'ACCOUNT LOCKED','teal');
-  el('line',{class:'flink-dim',x1:600,y1:370,x2:600,y2:428},partA);
+  const partB=el('g',{},SCENE);
   const three=[
     shield(partB,330,270,'blue','ELLIPTIC','Ed25519'),
     shield(partB,600,270,'amber','LATTICE','Falcon-1024'),
@@ -620,49 +647,41 @@ async function ch4(){
   const lockB=chip(partB,600,482,330,'SPEND NEEDS ALL THREE SIGNATURES','teal');
 
   while(t.alive){
-    /* Part A: a single assumption, a single point of failure. */
-    label.textContent='ONE HARD PROBLEM · ONE POINT OF FAILURE';
-    foot.textContent='“POST-QUANTUM” MEANS BELIEVED SAFE, NOT PROVEN SAFE';
-    partA.setAttribute('opacity','1'); partB.setAttribute('opacity','0');
-    one.g.setAttribute('class','shield amber'); one.s.textContent='one scheme only';
-    lockA.set('teal','ACCOUNT LOCKED');
-    if(!await sleep(1200)) return;
-    if(!await strike(600,90,200)) return;
-    one.g.setAttribute('class','shield amber broken'); one.s.textContent='broken by new math';
-    if(!await sleep(500)) return;
-    lockA.set('red','ACCOUNT OPEN TO A FORGER');
-    mark(755,440,false);
-    if(!await sleep(2400)) return;
-    if(REDUCED) partA.setAttribute('opacity','0');
-    else if(!await fadeTo(partA,0,400)) return;
-
-    /* Part B: three unrelated assumptions; one surviving is enough. */
+    /* Part B: three unrelated assumptions; one surviving is enough.
+       Three rounds, each scheme taking a turn as the survivor: nobody
+       knows which one a breakthrough will hit. */
     clearFx();
     label.textContent='THREE UNRELATED HARD PROBLEMS';
-    foot.textContent='A FORGER MUST BREAK ALL THREE AT ONCE';
-    three.forEach(s=>{ s.g.setAttribute('class','shield '+s.color); });
-    three[0].s.textContent='Ed25519'; three[1].s.textContent='Falcon-1024'; three[2].s.textContent='WOTS · SHA-256';
     lockB.set('teal','SPEND NEEDS ALL THREE SIGNATURES');
-    if(REDUCED) partB.setAttribute('opacity','1');
-    else if(!await fadeTo(partB,1,400)) return;
-    if(!await sleep(900)) return;
-    /* Elliptic, then hash, break; the lattice shield, struck last, holds. */
-    const ORDER=[0,2,1];
-    for(let k=0;k<3;k++){
-      const s=three[ORDER[k]];
-      if(!await strike(s.x,80,190)) return;
-      if(k<2){
-        s.g.setAttribute('class','shield '+s.color+' broken'); s.s.textContent='broken';
-      } else {
-        mark(s.x,190,true); s.s.textContent='holds';
-      }
+    const SUBS=['Ed25519','Falcon-1024','WOTS · SHA-256'];
+    const SURVIVORS=[1,2,0];
+    for(let round=0;round<SURVIVORS.length;round++){
+      const keep=SURVIVORS[round];
+      foot.textContent=`ROUND ${round+1} OF 3 · WHICHEVER ONE SURVIVES, THE ACCOUNT HOLDS`;
+      three.forEach((sh,i)=>{ sh.g.setAttribute('class','shield '+sh.color); sh.s.textContent=SUBS[i]; });
+      lockB.set('teal','SPEND NEEDS ALL THREE SIGNATURES');
       if(!await sleep(800)) return;
+      /* The two that break go first; the survivor is struck last. */
+      const order=[0,1,2].filter(i=>i!==keep).concat(keep);
+      for(let k=0;k<3;k++){
+        const sh=three[order[k]];
+        if(!await strike(sh.x,80,190)) return;
+        if(k<2){
+          sh.g.setAttribute('class','shield '+sh.color+' broken'); sh.s.textContent='broken';
+        } else {
+          mark(sh.x,190,true); sh.s.textContent='holds';
+        }
+        if(!await sleep(650)) return;
+      }
+      lockB.set('teal','STILL LOCKED · ONE SURVIVOR IS ENOUGH');
+      flash(lockB.g);
+      if(REDUCED) break;
+      if(!await sleep(1900)) return;
+      clearFx();
     }
-    lockB.set('teal','STILL LOCKED · ONE SURVIVOR IS ENOUGH');
-    flash(lockB.g);
     stamp(600,560,'A FORGER NEEDS ALL THREE',true,REDUCED);
     if(REDUCED) return;
-    if(!await sleep(3800)) return;
+    if(!await sleep(3600)) return;
     clearFx();
   }
 }
@@ -671,10 +690,10 @@ async function ch4(){
 /* CHAPTER 9: the four properties, plus the triple                          */
 /* ======================================================================== */
 const PANELS=[
-  {x:315,y:160,n:'1',title:'HIDDEN UNTIL IT SIGNS',l1:'a stage’s keys go public only in the spend',l2:'that moves the account to an unseen stage',tag:'CH 1 · 6'},
+  {x:315,y:160,n:'1',title:'HIDDEN UNTIL IT SIGNS',l1:'a stage’s keys go public only in the spend',l2:'that moves the account to an unseen stage',tag:'CH 1 · 7'},
   {x:885,y:160,n:'2',title:'STABLE ADDRESS',l1:'address, balance and assets never move;',l2:'nobody who pays you learns anything new',tag:'CH 2 · 3'},
-  {x:315,y:350,n:'3',title:'NO ON-CHAIN STATE',l1:'no contract storage, no upgrade key, no admin;',l2:'only the account’s auth-addr changes',tag:'CH 3 · 6'},
-  {x:885,y:350,n:'4',title:'CHEAP ROTATION',l1:'rides inside the spend: four minimum fees,',l2:'about 0.004 ALGO, native opcodes',tag:'CH 5 · 6'}
+  {x:315,y:350,n:'3',title:'NO ON-CHAIN STATE',l1:'no contract storage, no upgrade key, no admin;',l2:'only the account’s auth-addr changes',tag:'CH 3 · 7'},
+  {x:885,y:350,n:'4',title:'CHEAP ROTATION',l1:'rides inside the spend: four minimum fees,',l2:'about 0.004 ALGO, native opcodes',tag:'CH 6 · 7'}
 ];
 async function ch9(){
   const t=token;
@@ -736,7 +755,7 @@ const pad=k=>String(k).padStart(2,'0');
 function renderCaption(n){
   const c=chapters[n], inner=$('capInner');
   inner.classList.remove('swap'); void inner.offsetWidth; inner.classList.add('swap');
-  $('capKicker').textContent='CHAPTER '+pad(n+1);
+  $('capKicker').textContent='CHAPTER '+pad(c.num);
   $('capTitle').textContent=c.title;
   $('capBody').innerHTML=c.body;
   $('capTake').textContent=c.take;
@@ -768,6 +787,15 @@ async function setChapter(n,force=false){
 }
 
 (function(){
+  /* ?chapter=N jumps to chapter N; adding &solo=1 shows that chapter alone,
+     with no chapter navigation, for linking or presenting one idea. */
+  chapters.forEach((c,i)=>{ c.num=i+1; });
+  const params=new URLSearchParams(location.search);
+  const start=Math.max(1,Math.min(chapters.length,Number(params.get('chapter'))||1))-1;
+  if(params.has('solo')){
+    chapters.splice(0,chapters.length,chapters[start]);
+    ['btnPrev','btnNext','dots','counter'].forEach(id=>{ $(id).hidden=true; });
+  }
   chapters.forEach((c,i)=>{
     const b=document.createElement('button');
     b.className='scene-dot';
@@ -787,7 +815,7 @@ async function setChapter(n,force=false){
     if(e.key==='ArrowRight') setChapter(current+1);
     if(e.key==='ArrowLeft') setChapter(current-1);
   });
-  setChapter(0);
+  setChapter(params.has('solo')?0:start);
 })();
 </script>
 </body>

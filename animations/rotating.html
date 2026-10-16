@@ -463,9 +463,11 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
           <text class="gate-title" id="rotGateTitle" x="374" y="202">STAGE 0 LOGICSIG (A₀) · TEAL V13</text>
           <g class="chip teal" id="rotStageBadge">
             <rect id="rotStageBadgeRect" x="372" y="214" width="262" height="22" rx="6"/>
-            <text id="rotStageBadgeText" x="503" y="229" text-anchor="middle">🔒 HASH-SHIELDED UNTIL SIGNING</text>
+            <text id="rotStageBadgeText" x="503" y="229" text-anchor="middle">🔒 HASH-SHIELDED AT REST</text>
           </g>
 
+          <!-- The program's checks: hidden while the stage is hash-shielded -->
+          <g id="rotGateItems" opacity="0">
           <!-- Check 1: Falcon-1024 (lattice) -->
           <g class="chk" id="rotChk1">
             <circle cx="383" cy="258" r="7"/>
@@ -516,7 +518,16 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
             <path class="cross" d="M378.5 393.5 L387.5 402.5 M387.5 393.5 L378.5 402.5"/>
             <text class="chk-text" id="rotChk5Text" x="400" y="402">signer: target A₁ · open test ok</text>
           </g>
-          <text class="gate-result" id="rotGateResult" x="374" y="430">→ spend + rotate to A₁ authorized</text>
+          </g>
+          <g id="rotGateResultWrap" opacity="0">
+            <text class="gate-result" id="rotGateResult" x="374" y="430">→ spend + rotate to A₁ authorized</text>
+          </g>
+          <!-- Shown instead of the checks while the stage is hash-shielded -->
+          <g id="rotGateSealed">
+            <text x="520" y="318" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)" letter-spacing=".12em">PROGRAM NOT ON CHAIN</text>
+            <text id="rotGateSealedSub" x="520" y="342" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">only its 32-byte hash, A₀, exists</text>
+            <text id="rotGateSealedSub2" x="520" y="362" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">keys and checks appear when stage 0 signs</text>
+          </g>
         </g>
 
         <!-- Next Stage Queued Slot (bottom below gate) -->
@@ -762,7 +773,7 @@ function configureRotatingStage(n, showRetired){
   $('rotWotsChipText').textContent=`WOTS-W16 KEY #${n}`;
   $('rotGateTitle').textContent=`STAGE ${n} LOGICSIG (A${subNum(n)}) · TEAL V13`;
   $('rotStageBadge').setAttribute('class','chip teal');
-  $('rotStageBadgeText').textContent='🔒 HASH-SHIELDED UNTIL SIGNING';
+  $('rotStageBadgeText').textContent='🔒 HASH-SHIELDED AT REST';
   $('rotChk3Text').textContent='RekeyTo ≠ zero · ≠ account';
   $('rotChk4Text').textContent='no close-out · Δvalid ≤ 100 rds';
   $('rotChk5Text').textContent=`signer: target A${subNum(next)} · open test ok`;
@@ -786,7 +797,27 @@ function configureRotatingStage(n, showRetired){
   } else {
     $('retiredSlot').setAttribute('opacity','0');
   }
+  sealGate(n);
   updateConveyorPills(n, false);
+}
+
+/* While a stage is hash-shielded only its address exists on chain, so the
+   gate shows no checks until the stage signs. */
+function sealGate(n){
+  $('rotGateItems').setAttribute('opacity','0');
+  $('rotGateResultWrap').setAttribute('opacity','0');
+  $('rotGateSealed').setAttribute('opacity','1');
+  $('rotGateSealedSub').textContent=`only its 32-byte hash, A${subNum(n)}, exists`;
+  $('rotGateSealedSub2').textContent=`keys and checks appear when stage ${n} signs`;
+}
+function revealGate(dur){
+  const items=$('rotGateItems'), res=$('rotGateResultWrap'), sealed=$('rotGateSealed');
+  return tween(dur,p=>{
+    const e=ease(p);
+    items.setAttribute('opacity',e.toFixed(3));
+    res.setAttribute('opacity',e.toFixed(3));
+    sealed.setAttribute('opacity',(1-e).toFixed(3));
+  });
 }
 
 /* Animate atomic rotation from stage n to stage n+1 */
@@ -978,7 +1009,9 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   $('rotStageBadge').setAttribute('class','chip amber');
   $('rotStageBadgeText').textContent=`SIGNING: STAGE ${stageIdx} KEYS REVEALED IN TX`;
 
+  const revealP=revealGate(700);
   const balls=await slideSignals(stageSignals(),1180);
+  await revealP;
   if(!balls){ bub.remove(); return false; }
   const drop=()=>balls.forEach(b=>b.remove());
 
@@ -1057,26 +1090,24 @@ async function loopScene4(){
 
     if(!await sleep(800)) return;
     flash('rotAttacker',1400,'warn');
-    const badBub=makeBubble('forged tx (signed by retired A₀)',710,335,'bad');
+    const badBub=makeBubble('forged tx (signed by retired A₀)',790,335,'bad');
     if(!await fadeTo(badBub,1,380)){ badBub.remove(); return; }
     badBub.classList.add('staged');
 
-    const ballsA=await slideSignals(stageSignals('#f26b6b').map(sp=>({...sp,from:[520,122]})),1150);
+    const ballsA=await slideSignals(stageSignals('#f26b6b').map((sp,i)=>({...sp,from:[520,122],to:[645,238+30*i]})),1150);
     if(!ballsA){ badBub.remove(); return; }
     const dropA=()=>ballsA.forEach(b=>b.remove());
 
     if(!await sleep(420)){ dropA(); badBub.remove(); return; }
-    $('rotChk1').classList.add('fail');
-    $('rotChk2').classList.add('fail');
-    $('rotChkW').classList.add('fail');
     $('rotGateResult').textContent='→ rejected: account auth-addr is A₁, not A₀';
+    $('rotGateResultWrap').setAttribute('opacity','1');
     $('rotGateResult').classList.add('fail');
     $('rotBarrier').classList.add('hot');
 
     if(!await sleep(850)){ dropA(); badBub.remove(); return; }
     dropA();
     badBub.classList.remove('staged');
-    if(!await moveBubble(badBub,710,335,775,385,1250,false)){ badBub.remove(); return; }
+    if(!await moveBubble(badBub,790,335,775,385,1250,false)){ badBub.remove(); return; }
     mark(775,385,false);
     stamp(775,445,'RETIRED STAGE REJECTED');
     if(!await sleep(500)){ badBub.remove(); return; }
@@ -1100,7 +1131,9 @@ async function loopScene4(){
     if(!await sleep(450)){ okBub.remove(); return; }
     $('rotChk5').classList.add('done');
 
-    const ballsB=await slideSignals(stageSignals(),1150);
+    const revealB=revealGate(700);
+  const ballsB=await slideSignals(stageSignals(),1150);
+  await revealB;
     if(!ballsB){ okBub.remove(); return; }
     const dropB=()=>ballsB.forEach(b=>b.remove());
     if(!await sleep(400)){ dropB(); okBub.remove(); return; }
@@ -1145,6 +1178,7 @@ function staticFrame(n){
     configureRotatingStage(1, true);
     ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
+    $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
     mark(995,252,true);
   } else if(n===3){
     showLayer('layerRotating');
@@ -1152,6 +1186,7 @@ function staticFrame(n){
     configureRotatingStage(2, true);
     ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
+    $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
     mark(995,252,true);
   } else {
     showLayer('layerRotating');
