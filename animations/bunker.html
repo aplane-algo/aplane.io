@@ -646,10 +646,12 @@ async function ch4(){
     if(REDUCED) partB.setAttribute('opacity','1');
     else if(!await fadeTo(partB,1,400)) return;
     if(!await sleep(900)) return;
-    for(let i=0;i<3;i++){
-      const s=three[i];
+    /* Elliptic, then hash, break; the lattice shield, struck last, holds. */
+    const ORDER=[0,2,1];
+    for(let k=0;k<3;k++){
+      const s=three[ORDER[k]];
       if(!await strike(s.x,80,190)) return;
-      if(i<2){
+      if(k<2){
         s.g.setAttribute('class','shield '+s.color+' broken'); s.s.textContent='broken';
       } else {
         mark(s.x,190,true); s.s.textContent='holds';
