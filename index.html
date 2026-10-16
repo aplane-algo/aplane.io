@@ -48,54 +48,6 @@
       margin: 0 auto 16px;
     }
 
-    .install {
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-      gap: 10px;
-      width: fit-content;
-      max-width: 100%;
-      margin: 0 auto;
-    }
-
-    p {
-      margin: 0;
-      padding: 14px;
-      text-align: center;
-      overflow-wrap: anywhere;
-      background: var(--panel);
-      color: var(--command);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      line-height: 1.5;
-      font-size: 15px;
-      min-width: 0;
-    }
-
-    code {
-      font: inherit;
-    }
-
-    .copy-btn {
-      flex-shrink: 0;
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0 14px;
-      font: inherit;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .copy-btn:hover,
-    .copy-btn:focus {
-      background: var(--panel);
-      color: var(--command);
-      outline: none;
-    }
-
     .tagline {
       margin: 0 auto 16px;
       color: var(--text);
@@ -132,42 +84,6 @@
   <main>
     <img src="img/aplane.png" alt="APlane">
     <div class="tagline">APlane Signer and Shell for Linux and MacOS</div>
-    <div class="install">
-      <p><code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/aplane-algo/aplane/main/bootstrap-install.sh | bash</code></p>
-      <button type="button" class="copy-btn" id="copy-btn" aria-label="Copy install command">Copy</button>
-    </div>
-    <script>
-      (function () {
-        var btn = document.getElementById('copy-btn');
-        var cmd = document.getElementById('install-cmd');
-        btn.addEventListener('click', function () {
-          var text = cmd.textContent;
-          var done = function () {
-            var original = btn.textContent;
-            btn.textContent = 'Copied';
-            setTimeout(function () { btn.textContent = original; }, 1500);
-          };
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(done, function () {
-              fallbackCopy(text); done();
-            });
-          } else {
-            fallbackCopy(text); done();
-          }
-        });
-        function fallbackCopy(text) {
-          var ta = document.createElement('textarea');
-          ta.value = text;
-          ta.setAttribute('readonly', '');
-          ta.style.position = 'absolute';
-          ta.style.left = '-9999px';
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand('copy'); } catch (e) {}
-          document.body.removeChild(ta);
-        }
-      })();
-    </script>
     <nav aria-label="Project links">
       <a href="https://github.com/aplane-algo/aplane">Github</a>
       <a href="https://github.com/aplane-algo/aplane/blob/main/README.md">README</a>
