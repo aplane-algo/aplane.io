@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bunker Mode Without the Bunker</title>
+<style>
+:root{
+  --bg:#0a0f1d; --panel:#131b2f; --panel-deep:#0e1526;
+  --line:#26324e;
+  --ink:#e9eef8; --muted:#8a94ac; --faint:#5a6480;
+  --amber:#f0b45c; --amber-dim:rgba(240,180,92,.14);
+  --teal:#4fe0c4; --teal-dim:rgba(79,224,196,.13);
+  --blue:#6eb5ff; --blue-dim:rgba(110,181,255,.14);
+  --red:#f26b6b; --red-dim:rgba(242,107,107,.12);
+  --violet:#b48cff; --violet-dim:rgba(180,140,255,.14);
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --page-bg:#f6f7f2; --page-ink:#111111; --page-muted:#5b5f66;
+  --page-border:#d7dacd; --ink-teal:#0a7d6b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:light}
+body{
+  background:var(--page-bg);color:var(--page-ink);font-family:var(--sans);
+  min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:48px;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink-teal);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+@media (max-width:600px){.wrap{padding:0 16px}}
+
+header{padding:40px 0 10px;text-align:center}
+h1{font-weight:600;font-size:clamp(26px,4vw,40px);letter-spacing:-.015em;text-wrap:balance}
+.sub{color:var(--page-muted);max-width:68ch;margin:10px auto 0;text-wrap:balance;line-height:1.5}
+
+.stage-frame{
+  position:relative;margin-top:24px;border:1px solid #cdd0c6;border-radius:16px;overflow:hidden;
+  background:radial-gradient(960px 460px at 50% -10%, #132042, #0a0f1d 74%);
+  box-shadow:0 4px 20px rgba(17,17,17,.08), 0 1px 3px rgba(17,17,17,.06);
+  aspect-ratio:1200/640;
+}
+svg#stage{display:block;width:100%;height:100%}
+#embed{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:var(--bg)}
+.stage-frame.embedded #embed{display:block}
+.stage-frame.embedded svg#stage{visibility:hidden}
+text{user-select:none}
+
+/* Node chrome */
+.node-box{fill:var(--panel);stroke:var(--line);stroke-width:1.35;transition:stroke .25s, filter .25s}
+.node-title{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.13em;fill:var(--ink)}
+.node-sub{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.node-dot{fill:var(--teal);transition:fill .25s}
+.node.lit .node-box{stroke:var(--teal);filter:drop-shadow(0 0 14px rgba(79,224,196,.42))}
+.node.bad .node-box{stroke:var(--red)}
+.node.bad .node-dot{fill:var(--red)}
+.node.warn .node-box{stroke:var(--red);filter:drop-shadow(0 0 14px rgba(242,107,107,.42))}
+.gate-box{fill:var(--panel-deep);stroke:rgba(79,224,196,.48);stroke-width:1.3}
+.top-label{font-family:var(--mono);font-weight:600;font-size:11.5px;letter-spacing:.16em;fill:var(--muted)}
+.stage-footnote{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.12em;fill:var(--faint)}
+.counter-text{font-family:var(--mono);font-weight:600;font-size:12px;letter-spacing:.1em;fill:var(--amber)}
+
+/* Links */
+.flink{stroke:var(--teal);stroke-width:1.8;fill:none}
+.flink-dim{stroke:#2b3b5e;stroke-width:1.5;fill:none;stroke-dasharray:5 5}
+.flink-bad{stroke:var(--red);stroke-width:1.6;fill:none;stroke-dasharray:6 6}
+.arrow-label{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.1em;fill:var(--teal)}
+
+/* Chips */
+.chip rect{stroke-width:1.1;transition:fill .25s, stroke .25s}
+.chip text{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.05em;transition:fill .25s}
+.chip.amber rect{fill:var(--amber-dim);stroke:var(--amber)} .chip.amber text{fill:var(--amber)}
+.chip.teal rect{fill:var(--teal-dim);stroke:var(--teal)}    .chip.teal text{fill:var(--teal)}
+.chip.blue rect{fill:var(--blue-dim);stroke:var(--blue)}    .chip.blue text{fill:var(--blue)}
+.chip.violet rect{fill:var(--violet-dim);stroke:var(--violet)} .chip.violet text{fill:var(--violet)}
+.chip.red rect{fill:var(--red-dim);stroke:var(--red)}       .chip.red text{fill:var(--red)}
+.chip.muted rect{fill:rgba(90,100,128,.12);stroke:#3a4663}  .chip.muted text{fill:var(--muted)}
+
+/* Shields (chapter 4) */
+.shield path.body{stroke-width:1.6;transition:fill .3s, stroke .3s}
+.shield.blue path.body{fill:var(--blue-dim);stroke:var(--blue)}
+.shield.amber path.body{fill:var(--amber-dim);stroke:var(--amber)}
+.shield.violet path.body{fill:var(--violet-dim);stroke:var(--violet)}
+.shield.broken path.body{fill:var(--red-dim);stroke:var(--red)}
+.shield path.crack{fill:none;stroke:var(--red);stroke-width:2.6;stroke-linejoin:round;opacity:0;transition:opacity .2s}
+.shield.broken path.crack{opacity:1}
+.shield text.s-title{font-family:var(--mono);font-weight:600;font-size:11.5px;letter-spacing:.12em;fill:var(--ink)}
+.shield text.s-sub{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.bolt{fill:none;stroke:#ffd27a;stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(255,210,122,.8))}
+
+/* Packets */
+.pkt-box{fill:#0f2420;stroke:var(--teal);stroke-width:1.1}
+.pkt text{font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--teal)}
+.pkt.bad .pkt-box{stroke:var(--red);fill:#231524}  .pkt.bad text{fill:var(--red)}
+.pkt.amber .pkt-box{stroke:var(--amber);fill:#241c10} .pkt.amber text{fill:var(--amber)}
+.pkt.staged{animation:pktpulse 1.15s ease-in-out infinite}
+@keyframes pktpulse{0%,100%{opacity:.72}50%{opacity:1}}
+
+/* Pops & stamps */
+.mark,.stamp{transform-box:fill-box;transform-origin:center}
+.mark-ok circle{fill:var(--teal-dim);stroke:var(--teal);stroke-width:1.4}
+.mark-ok path{stroke:var(--teal);stroke-width:2;fill:none}
+.mark-no circle{fill:var(--red-dim);stroke:var(--red);stroke-width:1.4}
+.mark-no path{stroke:var(--red);stroke-width:2;fill:none}
+.mark{animation:markpop 2.8s ease forwards}
+@keyframes markpop{0%{opacity:0;transform:scale(.4)}10%{opacity:1;transform:scale(1)}84%{opacity:1}100%{opacity:0}}
+.stamp text{font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.18em;fill:var(--red)}
+.stamp rect{fill:rgba(35,21,36,.9);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 4}
+.stamp.teal text{fill:var(--teal)}
+.stamp.teal rect{fill:rgba(14,32,34,.92);stroke:var(--teal)}
+.stamp.anim{animation:stamppop 3.4s ease forwards}
+@keyframes stamppop{0%{opacity:0;transform:scale(1.35)}12%{opacity:1;transform:scale(1)}86%{opacity:1}100%{opacity:0}}
+
+/* Recap panels (chapter 9) */
+.panel-num{font-family:var(--mono);font-weight:700;font-size:13px;fill:var(--bg)}
+
+/* Legend, controls, caption */
+.legend{display:flex;justify-content:center;gap:10px 22px;flex-wrap:wrap;padding:14px 0 2px}
+.leg-item{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--page-muted);letter-spacing:.03em}
+.leg-dot{width:10px;height:10px;border-radius:99px;flex:none}
+.leg-dot.teal{background:var(--teal)} .leg-dot.red{background:var(--red)}
+.leg-dot.blue{background:var(--blue)} .leg-dot.amber{background:var(--amber)} .leg-dot.violet{background:var(--violet)}
+
+.controls{display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0 0;flex-wrap:wrap}
+.ctl-btn{
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--page-ink);
+  border:1px solid var(--page-border);border-radius:8px;padding:8px 15px;background:#ffffff;
+  transition:border-color .2s, background .2s;
+}
+.ctl-btn:hover{border-color:var(--ink-teal);background:#eef0ea}
+.ctl-btn[disabled]{opacity:.48;pointer-events:none}
+.counter{font-family:var(--mono);font-size:12px;color:var(--page-muted);letter-spacing:.12em;font-variant-numeric:tabular-nums;min-width:56px;text-align:center}
+.scene-dots{display:flex;align-items:center;gap:6px;margin:0 4px;flex-wrap:wrap;justify-content:center}
+.scene-dot{width:22px;height:7px;border-radius:99px;background:#d7dacd;transition:background .2s, width .2s}
+.scene-dot:hover{background:#9ab5ae}
+.scene-dot.active{background:var(--ink-teal);width:32px}
+
+.caption{min-height:220px;padding:14px 8px 4px;display:flex;justify-content:center}
+.caption-inner{max-width:68ch;text-align:center}
+.caption-inner.swap{animation:capin .45s ease}
+@keyframes capin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kicker{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.22em;color:var(--ink-teal)}
+.caption h2{font-weight:600;font-size:clamp(19px,2.6vw,25px);margin:8px 0 10px;letter-spacing:-.01em;text-wrap:balance}
+.caption p{color:var(--page-muted);font-size:15.5px;line-height:1.6;margin-bottom:10px}
+.caption p strong{font-weight:600;color:var(--page-ink)}
+.caption code{font-family:var(--mono);font-size:13.5px;background:#e8ebe2;padding:1px 5px;border-radius:4px;color:#111}
+.takeaway{
+  display:inline-block;margin-top:4px;padding:8px 14px;border-left:3px solid var(--ink-teal);
+  background:#eaf1ec;color:var(--page-ink);font-weight:600;font-size:15px;text-align:left;border-radius:0 6px 6px 0;
+}
+.terms{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--page-muted);letter-spacing:.03em}
+
+/* Glossary terms: hover or focus for a definition */
+dfn{font-style:normal;color:var(--page-ink);border-bottom:1px dashed #8fa39c;cursor:help;position:relative;outline:none}
+dfn:focus-visible{outline:2px solid var(--ink-teal);outline-offset:2px;border-radius:3px}
+dfn::after{
+  content:attr(data-def);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+  width:max-content;max-width:min(300px,80vw);padding:8px 10px;border-radius:7px;
+  background:#111;color:#f3f4ef;font-family:var(--sans);font-size:13px;font-weight:400;line-height:1.45;text-align:left;
+  display:none;pointer-events:none;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.18);
+}
+/* Rendered only while shown, so hidden tooltips never widen the page. */
+dfn:hover::after,dfn:focus::after{display:block}
+
+.deeper{margin-top:18px;font-size:14px;color:var(--page-muted);text-align:center}
+.deeper a{color:var(--ink-teal)}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Bunker Mode Without the Bunker</h1>
+  <p class="sub">How rotating triple hybrid accounts keep every key hidden until it signs, without ever moving your funds to a new address.</p>
+</header>
+<main class="wrap">
+  <div class="stage-frame" id="frame">
+    <svg id="stage" viewBox="0 0 1200 640" role="img" aria-labelledby="capTitle">
+      <defs>
+        <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+          <path d="M44 0H0V44" fill="none" stroke="#121a30" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="1200" height="640" fill="var(--bg)"/>
+      <rect width="1200" height="640" fill="url(#grid)" opacity="0.55"/>
+      <g id="scene"></g>
+      <g id="fx"></g>
+    </svg>
+    <iframe id="embed" title="Rotating triple hybrid account animation" tabindex="-1"></iframe>
+  </div>
+  <nav class="controls" aria-label="Chapter controls">
+    <button class="ctl-btn" id="btnPrev">‹ Back</button>
+    <div class="scene-dots" id="dots" aria-label="Choose chapter"></div>
+    <span class="counter" id="counter"></span>
+    <button class="ctl-btn" id="btnNext">Next ›</button>
+    <button class="ctl-btn" id="btnReplay">Replay</button>
+  </nav>
+  <div class="legend">
+    <div class="leg-item"><span class="leg-dot teal"></span>hidden key / approved</div>
+    <div class="leg-item"><span class="leg-dot red"></span>exposed key / rejected</div>
+    <div class="leg-item"><span class="leg-dot blue"></span>Ed25519 (elliptic curve)</div>
+    <div class="leg-item"><span class="leg-dot amber"></span>Falcon-1024 (lattice)</div>
+    <div class="leg-item"><span class="leg-dot violet"></span>WOTS (hash-based)</div>
+  </div>
+  <section class="caption" aria-live="polite">
+    <div class="caption-inner" id="capInner">
+      <div class="kicker" id="capKicker"></div>
+      <h2 id="capTitle"></h2>
+      <div id="capBody"></div>
+      <div class="takeaway" id="capTake"></div>
+      <div class="terms" id="capTerms"></div>
+    </div>
+  </section>
+  <p class="deeper">Go deeper: <a href="rotating.html">the full rotating triple hybrid walkthrough</a> · <a href="constrained.html">constrained Falcon accounts</a> · <a href="mesh.html">a constrained payment mesh</a></p>
+</main>
+
+<script>
+'use strict';
+const NS='http://www.w3.org/2000/svg';
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+const SCENE=$('scene'), FX=$('fx');
+
+/* ======================================================================== */
+/* GLOSSARY: shown as hover/focus definitions on <dfn> terms in captions     */
+/* ======================================================================== */
+const GLOSSARY={
+  'public key':'The half of a key pair you share. Anyone can use it to check your signatures.',
+  'signature':'Proof, made with a private key, that its owner approved this exact transaction.',
+  'hash':'A one-way fingerprint of data: easy to compute, infeasible to reverse.',
+  'gas':'The fee an Ethereum transaction pays to run.',
+  'token approval':'Permission an address gives a contract to move its tokens.',
+  'rekey':'An Algorand transaction field that changes which address may sign for an account.',
+  'auth-addr':'The address whose signature an Algorand account currently requires. Empty means the account signs for itself.',
+  'LogicSig':'A small program that approves or rejects transactions. Its address is a hash of the program, so keys inside it stay hidden until it is used.',
+  'post-quantum':'Designed to resist attacks by quantum computers.',
+  'elliptic curve':'The math behind Ed25519 and the signatures Bitcoin and Ethereum use today.',
+  'lattice':'The math behind Falcon, a standardized post-quantum signature scheme.',
+  'hash-based signature':'A signature whose security depends only on a hash function, here SHA-256.',
+  'recovery phrase':'24 words that encode the seed every key of the account is derived from.',
+  'derivation':'Computing keys from a seed. The same seed always gives the same keys, but keys reveal nothing about the seed.',
+  'round':'One Algorand block, about 3 seconds.',
+  'lands':'Is confirmed in a block.',
+  'open test':'Signing a test message with the next stage’s keys before releasing the current stage’s signature.',
+  'one-time key':'A key that is safe to sign only one message. WOTS keys are one-time.',
+  'opcode':'An instruction built into the chain’s program engine.'
+};
+const T=(word,key)=>`<dfn tabindex="0" data-def="${GLOSSARY[key||word]}">${word}</dfn>`;
+
+/* ======================================================================== */
+/* CHAPTERS                                                                 */
+/* ======================================================================== */
+const chapters=[
+  {
+    title:'Bunker mode',
+    run:ch1,
+    body:`<p>To check a ${T('signature')} you need the signer’s ${T('public key')}, so every transaction you sign publishes yours. Until you sign, an Ethereum address shows only a ${T('hash')} of the key, and a hash gives an attacker nothing to work on.</p>
+<p>In October 2026, Ethereum researcher Justin Drake asked the industry to start planning for “bunker mode”. His worry was not only quantum computers: AI systems are starting to produce new mathematics, and today’s signatures rest on problems believed to be hard, not proven hard. A sudden break would put every public key already on chain at risk.</p>
+<p>His remedy needs no new technology: keep funds behind keys that have never signed, and after every spend, sweep what is left to a fresh address.</p>`,
+    take:'A public key that has never been published can’t be attacked.'
+  },
+  {
+    title:'The cost of sweeping',
+    run:ch2,
+    body:`<p>Sweeping works, but every spend now costs a migration. Each token moves in its own transaction, and each one pays ${T('gas')}. ${T('Token approvals','token approval')}, names, open positions and everyone who pays you still point at the old address, which is now an exposed key.</p>
+<p>Every manual migration is a chance to send funds somewhere wrong, which is why critics warned that a rushed bunker migration could do more harm than an attack. What we want is a fresh key on every spend, <strong>without a new address on every spend</strong>.</p>`,
+    take:'The problem with bunker mode isn’t the new key. It’s the new address.'
+  },
+  {
+    title:'Algorand’s answer: change the key, keep the address',
+    run:ch3,
+    body:`<p>Algorand separates who an account is from who may sign for it. Every account can name another address as its ${T('auth-addr')}, and a single transaction can change it. This is called a ${T('rekey')}. The account’s address, balance, assets and history stay exactly where they are.</p>
+<p>So instead of moving the funds to a fresh key after every spend, we point the account at a fresh key. To keep each new key hidden until it is used, the authorizer is a ${T('LogicSig')}: its address is a hash of a small program, and the public keys written inside it stay hidden until the program is submitted to sign.</p>`,
+    take:'Rekeying moves the key, not the money.'
+  },
+  {
+    title:'Why three keys?',
+    run:ch4,
+    body:`<p>Why not just switch to a ${T('post-quantum')} key? Because post-quantum only means “believed safe against quantum computers”. Post-quantum schemes rest on problems believed to be hard too, and they are much younger than ${T('elliptic curve','elliptic curve')}s. If AI-driven mathematics can break one hard problem, nobody can promise which one.</p>
+<p>So every key in this design is really three, from three unrelated families, and every spend needs all three signatures: <strong>Ed25519</strong> (elliptic curve, decades of scrutiny), <strong>Falcon-1024</strong> (${T('lattice')}, standardized for post-quantum use), and <strong>WOTS</strong>, a ${T('hash-based signature')} built from SHA-256 alone, the most conservative assumption in cryptography.</p>`,
+    take:'Three unrelated hard problems: a forger has to win all three.'
+  },
+  {
+    title:'One phrase, an endless chain of hidden stages',
+    embed:1,
+    body:`<p>A rotating triple hybrid account comes from one 24-word ${T('recovery phrase')}. From it the signer derives a sequence of <strong>stages</strong>, 0, 1, 2 and onward without end. Each stage is a small LogicSig holding its own Ed25519, Falcon and WOTS keys.</p>
+<p>Think of the ${T('derivation')} as a numbered sequence you can only run forward: the same phrase always produces the same stages, but knowing one stage’s keys tells you nothing about any other. The account is born as stage 0, and every other stage exists on chain only as a 32-byte hash.</p>
+<p>This is also what makes the hash-based key practical. A WOTS key is a ${T('one-time key')}: normally that forces you to track which keys are used up. Here every stage signs once and the account moves on, so the chain itself is the record.</p>`,
+    take:'One backup covers every stage, and every unused stage is just a hash.'
+  },
+  {
+    title:'Spend and rotate in one transaction',
+    embed:2,
+    body:`<p>To spend, the current stage signs the transaction with all three of its keys, and the same transaction rekeys the account to the next stage. The stage program checks, on chain, that all three signatures are valid, that the transaction rekeys the account away from itself, that it doesn’t close the account, and that it is valid for at most 100 ${T('round','round')}s (about five minutes). The signer picks the next stage as the new authorizer, refuses any other target, and first runs an ${T('open test')} on it.</p>
+<p>The transaction that reveals stage 0’s keys is the same one that takes authority away from stage 0. When it ${T('lands')}, the account answers to stage 1, whose keys have never been seen.</p>
+<p><strong>Why doesn’t the program name the next stage itself?</strong> It can’t: stage 1’s address is the hash of a program that would have to name stage 2, and so on forever. That doesn’t help a thief, who would still need the current stage’s keys to send anything at all. The signer’s rule protects the owner from mistakes.</p>`,
+    take:'A key becomes public only as it is retired.'
+  },
+  {
+    title:'A signer with nothing to remember',
+    embed:3,
+    body:`<p>The account’s address never changes while its authorizer walks forward: stage 0, 1, 2, 3. The signer keeps no stage counter. Before each spend it reads the account’s current authorizer from the chain, works out which stage that is, and derives the next one from the phrase.</p>
+<p>Restoring from the recovery phrase on a new machine just works, because there is no counter to restore and no state to go stale.</p>`,
+    take:'The chain is the only record of where the account is.'
+  },
+  {
+    title:'What an attacker actually faces',
+    embed:4,
+    body:`<p><strong>At rest</strong>, the live stage is only a hash. <strong>Behind</strong>, retired stages can no longer sign for the account: their keys are public, but the ledger only accepts the current authorizer. <strong>In flight</strong>, a stage’s keys are public between broadcast and confirmation, about one block, and a forger would have to break an elliptic curve, a lattice and a hash function in that window, then land a competing transaction first.</p>
+<p><strong>The honest limit:</strong> if a broadcast spend never lands, that stage’s keys are public while it is still the authorizer, for at most the 100-round validity window. If the stage then signs a replacement, its one-time WOTS key no longer counts, and it rests on Falcon and Ed25519 until a spend lands. The signer warns about this until the account moves.</p>`,
+    take:'The only exposed moment is a stage in flight, and it needs three breaks at once.'
+  },
+  {
+    title:'Bunker mode, without the bunker',
+    run:ch9,
+    body:`<p><strong>1. Every key stays hidden until it signs.</strong> A stage authorizes one landed spend, and its keys become public at the moment the account moves on to a stage nobody has seen. That is what bunker mode asks for, on every spend.</p>
+<p><strong>2. Stable address.</strong> The address, balance and assets never move, and nobody who pays you has to learn anything new. That is what bunker mode costs, gone.</p>
+<p><strong>3. No on-chain state to defend.</strong> LogicSigs are programs, so this isn’t “no code”. But nothing is stored on chain: no contract storage, no upgrade authority, no admin key. The only thing that changes is the account’s ordinary auth-addr.</p>
+<p><strong>4. Cheap rotation.</strong> The rotation is a field of the spend itself, with no separate setup transaction. Ed25519 and Falcon are checked by ${T('opcode','opcode')}s built into the chain, and WOTS by a short loop over the built-in <code>sha256</code>. The spend carries three small companion transactions to give the program room: four minimum fees, about 0.004 ALGO.</p>`,
+    take:'Bunker-mode security on every spend, with none of bunker mode’s migrations.'
+  }
+];
+
+/* ======================================================================== */
+/* ANIMATION PRIMITIVES                                                     */
+/* ======================================================================== */
+let token={alive:false};
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const lerp=(a,b,t)=>a+(b-a)*t;
+function sleep(ms){ const t=token; return new Promise(r=>setTimeout(()=>r(t.alive), REDUCED?0:ms)); }
+function tween(dur,fn){
+  const t=token;
+  if(REDUCED){ if(t.alive) fn(1); return Promise.resolve(t.alive); }
+  return new Promise(res=>{
+    const t0=performance.now();
+    (function step(now){
+      if(!t.alive){ res(false); return; }
+      const p=Math.min(1,(now-t0)/dur);
+      fn(p);
+      p<1?requestAnimationFrame(step):res(true);
+    })(t0);
+  });
+}
+function el(name,attrs,parent,text){
+  const e=document.createElementNS(NS,name);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  if(text!==undefined) e.textContent=text;
+  (parent||SCENE).appendChild(e);
+  return e;
+}
+function node(parent,x,y,w,h,title,sub){
+  const g=el('g',{class:'node',transform:`translate(${x},${y})`},parent);
+  const box=el('rect',{class:'node-box',x:-w/2,y:-h/2,width:w,height:h,rx:14},g);
+  el('circle',{class:'node-dot',cx:-w/2+20,cy:-h/2+20,r:4},g);
+  const tt=el('text',{class:'node-title',x:0,y:-h/2+30,'text-anchor':'middle'},g,title);
+  const st=el('text',{class:'node-sub',x:0,y:-h/2+52,'text-anchor':'middle'},g,sub);
+  return {g,box,tt,st};
+}
+function chip(parent,x,y,w,text,color){
+  const g=el('g',{class:'chip '+color,transform:`translate(${x},${y})`},parent);
+  el('rect',{x:-w/2,y:-12,width:w,height:24,rx:7},g);
+  const t=el('text',{x:0,y:4,'text-anchor':'middle'},g,text);
+  return {g,set(c,txt){ g.setAttribute('class','chip '+c); if(txt!==undefined) t.textContent=txt; }};
+}
+function flash(g,ms=1300,cls='lit'){
+  g.classList.add(cls);
+  setTimeout(()=>g.classList.remove(cls),REDUCED?0:ms);
+}
+function bubble(label,x,y,kind=''){
+  const g=el('g',{class:'pkt'+(kind?' '+kind:''),transform:`translate(${x},${y})`,opacity:'0'},FX);
+  const w=label.length*6.8+24;
+  el('rect',{class:'pkt-box',x:-w/2,y:-13,width:w,height:26,rx:13},g);
+  el('text',{x:0,y:4,'text-anchor':'middle'},g,label);
+  return g;
+}
+async function fadeTo(g,target,dur){
+  const s=parseFloat(g.getAttribute('opacity')||'1');
+  return tween(dur,p=>g.setAttribute('opacity',(s+(target-s)*p).toFixed(3)));
+}
+async function move(g,x1,y1,x2,y2,dur,fadeEnd=true){
+  return tween(dur,p=>{
+    const e=ease(p);
+    g.setAttribute('transform',`translate(${lerp(x1,x2,e)},${lerp(y1,y2,e)})`);
+    if(fadeEnd) g.setAttribute('opacity',(p>.88?(1-p)/.12:1).toFixed(3));
+  });
+}
+/* Send a labelled packet from one point to another, then remove it. */
+async function send(label,x1,y1,x2,y2,dur,kind){
+  const b=bubble(label,x1,y1,kind);
+  if(!await fadeTo(b,1,300)){ b.remove(); return false; }
+  const ok=await move(b,x1,y1,x2,y2,dur);
+  b.remove();
+  return ok;
+}
+function mark(x,y,ok=true){
+  const pos=el('g',{transform:`translate(${x},${y})`},FX);
+  const g=el('g',{class:(REDUCED?'':'mark ')+(ok?'mark-ok':'mark-no')},pos);
+  el('circle',{cx:0,cy:0,r:13},g);
+  if(ok) el('path',{d:'M-5.5 0 l3.7 4.1 l7.2 -8.3'},g);
+  else { el('path',{d:'M-5 -5 L5 5'},g); el('path',{d:'M5 -5 L-5 5'},g); }
+  if(!REDUCED) setTimeout(()=>pos.remove(),2850);
+}
+function stamp(x,y,text,teal=false,keep=false){
+  const pos=el('g',{transform:`translate(${x},${y})`},FX);
+  const g=el('g',{class:'stamp'+(teal?' teal':'')+(REDUCED||keep?'':' anim')},pos);
+  const w=text.length*11+30;
+  el('rect',{x:-w/2,y:-16,width:w,height:32,rx:6},g);
+  el('text',{x:0,y:5,'text-anchor':'middle'},g,text);
+  if(!REDUCED&&!keep) setTimeout(()=>pos.remove(),3450);
+  return pos;
+}
+function topLabel(text){ el('text',{class:'top-label',x:600,y:56,'text-anchor':'middle'},SCENE,text); }
+function footnote(text){ el('text',{class:'stage-footnote',x:600,y:604,'text-anchor':'middle'},SCENE,text); }
+function clearFx(){ while(FX.firstChild) FX.firstChild.remove(); }
+
+/* ======================================================================== */
+/* CHAPTER 1: the bunker loop on Ethereum                                   */
+/* ======================================================================== */
+async function ch1(){
+  const t=token;
+  topLabel('ETHEREUM · AN ADDRESS IS A HASH OF ITS PUBLIC KEY');
+  footnote('BUNKER MODE: AFTER EVERY SPEND, SWEEP THE REST TO A KEY THAT HAS NEVER SIGNED');
+  const counter=el('text',{class:'counter-text',x:1120,y:102,'text-anchor':'end'},SCENE,'');
+  const lines=el('g',{},SCENE);
+  const XS=[180,440,700,960], IDS=['0x7a3f…c91e','0x2b90…44d1','0xe4c2…08af','0x51dd…b7e3'];
+  const cards=XS.map((x,i)=>{
+    const n=node(SCENE,x,240,210,104,`ADDRESS #${i+1}`,IDS[i]);
+    n.bal=el('text',{class:'node-sub',x:0,y:36,'text-anchor':'middle'},n.g,'');
+    n.key=chip(SCENE,x,322,196,'KEY HIDDEN · HASH ONLY','teal');
+    n.x=x;
+    return n;
+  });
+  const threat=el('g',{transform:'translate(600,508)'},SCENE);
+  el('rect',{x:-215,y:-30,width:430,height:60,rx:10,fill:'rgba(242,107,107,0.1)',stroke:'var(--red)','stroke-width':1.3,'stroke-dasharray':'6 4'},threat);
+  el('text',{x:0,y:-5,'text-anchor':'middle','font-family':'var(--mono)','font-size':12,'font-weight':600,fill:'var(--red)','letter-spacing':'.1em'},threat,'⚠ AI-DRIVEN MATH · QUANTUM');
+  el('text',{x:0,y:15,'text-anchor':'middle','font-family':'var(--mono)','font-size':10.5,fill:'var(--muted)'},threat,'can only attack keys already on chain');
+
+  while(t.alive){
+    let spends=0, sweeps=0;
+    const tally=()=>counter.textContent=`SPENDS ${spends} · SWEEPS ${sweeps}`;
+    tally();
+    while(lines.firstChild) lines.firstChild.remove();
+    cards.forEach((c,i)=>{
+      c.g.setAttribute('class','node'); c.g.setAttribute('opacity',i===0?'1':'0.35');
+      c.key.set('teal','KEY HIDDEN · HASH ONLY'); c.bal.textContent=i===0?'balance: —':'';
+    });
+    if(!await sleep(700)) return;
+    if(!await send('receive 10 ETH',180,110,180,190,1100)) return;
+    let bal=10;
+    cards[0].bal.textContent=`balance: ${bal} ETH`; flash(cards[0].g);
+    if(!await sleep(700)) return;
+
+    for(let i=0;i<3;i++){
+      const c=cards[i], next=cards[i+1];
+      /* Spend: the signature carries the public key onto the chain. */
+      const pay=bubble('pay 2 ETH (signed)',c.x,300,'amber');
+      if(!await fadeTo(pay,1,280)){ pay.remove(); return; }
+      if(!await sleep(350)){ pay.remove(); return; }
+      c.key.set('red','PUBLIC KEY · ON CHAIN');
+      c.g.setAttribute('class','node bad');
+      bal-=2; c.bal.textContent=`balance: ${bal} ETH`;
+      spends++; tally();
+      const ok=await move(pay,c.x,300,c.x,445,1000);
+      pay.remove(); if(!ok) return;
+      el('line',{class:'flink-bad',x1:600,y1:478,x2:c.x,y2:336},lines);
+      if(!await sleep(650)) return;
+      /* Sweep: everything left moves to a fresh, never-signed address. */
+      next.g.setAttribute('opacity','1');
+      next.bal.textContent='balance: —';
+      if(!await send(`sweep ${bal} ETH`,c.x+70,240,next.x-70,240,1150)) return;
+      c.bal.textContent='balance: 0 ETH';
+      next.bal.textContent=`balance: ${bal} ETH`;
+      flash(next.g); sweeps++; tally();
+      if(!await sleep(800)) return;
+    }
+    stamp(600,152,'ONLY NEVER-SIGNED KEYS ARE SAFE',true,REDUCED);
+    if(REDUCED) return;
+    if(!await sleep(3800)) return;
+    clearFx();
+  }
+}
+
+/* ======================================================================== */
+/* CHAPTER 2: what each sweep costs                                         */
+/* ======================================================================== */
+async function ch2(){
+  const t=token;
+  topLabel('EVERY SPEND = ONE MIGRATION');
+  footnote('…AND THE NEXT SPEND STARTS IT ALL AGAIN');
+  const oldA=node(SCENE,230,200,230,96,'OLD ADDRESS','0x7a3f…c91e');
+  el('text',{class:'node-sub',x:0,y:34,'text-anchor':'middle',fill:'var(--red)'},oldA.g,'key exposed by the spend');
+  const newA=node(SCENE,970,200,230,96,'FRESH ADDRESS','0x2b90…44d1');
+  el('text',{class:'node-sub',x:0,y:34,'text-anchor':'middle',fill:'var(--teal)'},newA.g,'key hidden');
+  el('line',{class:'flink-dim',x1:345,y1:200,x2:855,y2:200},SCENE);
+  const tally=el('text',{class:'counter-text',x:600,y:104,'text-anchor':'middle'},SCENE,'');
+  const leftLabel=el('text',{class:'top-label',x:230,y:300,'text-anchor':'middle','font-size':10.5},SCENE,'STILL POINTING AT THE OLD ADDRESS');
+  const LEFT=['APPROVAL → DEX ROUTER','ENS NAME → alice.eth','DEFI POSITION · MUST UNWIND','PAYROLL PAYS THIS ADDRESS'];
+  const leftChips=LEFT.map((txt,i)=>chip(SCENE,230,332+i*34,250,txt,'red'));
+  const newChip=chip(SCENE,970,290,240,'EMPTY UNTIL EVERYTHING ARRIVES','muted');
+  const ITEMS=['USDC','DAI','LINK','NFT #812','ETH (the rest)'];
+
+  while(t.alive){
+    let txs=0;
+    const upd=()=>tally.textContent=`SWEEP TRANSACTIONS: ${txs} · EACH PAYS GAS · EACH CAN GO WRONG`;
+    upd();
+    oldA.g.setAttribute('class','node bad'); newA.g.setAttribute('class','node');
+    leftLabel.setAttribute('opacity','0'); leftChips.forEach(c=>c.g.setAttribute('opacity','0'));
+    newChip.set('muted','EMPTY UNTIL EVERYTHING ARRIVES');
+    if(!await sleep(700)) return;
+    for(const item of ITEMS){
+      if(!await send(item,350,200,850,200,900)) return;
+      txs++; upd(); flash(newA.g,500);
+      if(!await sleep(220)) return;
+    }
+    newChip.set('teal','HOLDS EVERYTHING · UNTIL THE NEXT SPEND');
+    if(!await sleep(600)) return;
+    if(!await fadeTo(leftLabel,1,300)) return;
+    for(const c of leftChips){
+      if(!await fadeTo(c.g,1,260)) return;
+      if(!await sleep(320)) return;
+    }
+    if(!await sleep(400)) return;
+    if(!await send('salary 3 ETH',230,80,230,150,1000,'amber')) return;
+    mark(330,165,false);
+    flash(oldA.g,1600,'warn');
+    stamp(600,560,'PAID TO AN EXPOSED KEY',false,REDUCED);
+    if(REDUCED) return;
+    if(!await sleep(3800)) return;
+    clearFx();
+  }
+}
+
+/* ======================================================================== */
+/* CHAPTER 3: rekeying on Algorand                                          */
+/* ======================================================================== */
+async function ch3(){
+  const t=token;
+  topLabel('ALGORAND · WHO AN ACCOUNT IS ≠ WHO MAY SIGN FOR IT');
+  footnote('REKEYING MOVES THE KEY, NOT THE MONEY');
+  chip(SCENE,250,130,300,'PAYROLL · EXCHANGE · FRIENDS → QK7M…3XZD','muted');
+  el('line',{class:'flink-dim',x1:250,y1:142,x2:250,y2:236},SCENE);
+  const acct=node(SCENE,250,300,260,128,'ACCOUNT A','QK7M…3XZD (never changes)');
+  const authTxt=el('text',{class:'node-sub',x:0,y:30,'text-anchor':'middle',fill:'var(--teal)'},acct.g,'');
+  const ASSETS=['1,250 ALGO','USDC','NFT #44'];
+  const assetChips=ASSETS.map((a,i)=>chip(SCENE,160+i*90,400,84,a,'muted'));
+  const YS=[170,300,430];
+  const keys=YS.map((y,i)=>{
+    const n=node(SCENE,920,y,300,84,`KEY ${i+1} · LOGICSIG`,'key hidden inside the program hash');
+    return n;
+  });
+  const arrow=el('line',{class:'flink',x1:380,y1:300,x2:770,y2:170},SCENE);
+  const arrowLabel=el('text',{class:'arrow-label',x:575,y:222,'text-anchor':'middle'},SCENE,'auth-addr');
+  const point=y=>{ arrow.setAttribute('y2',y); arrowLabel.setAttribute('y',(300+y)/2-12); };
+
+  while(t.alive){
+    let k=0;
+    point(YS[0]); authTxt.textContent='auth-addr → KEY 1';
+    keys.forEach((n,i)=>{ n.g.setAttribute('opacity',i===0?'1':'0.55'); n.st.textContent='key hidden inside the program hash'; n.g.setAttribute('class','node'); });
+    if(!await sleep(900)) return;
+    for(k=0;k<2;k++){
+      const from=YS[k], to=YS[k+1];
+      const b=bubble(`rekey → KEY ${k+2}`,575,370,'amber');
+      if(!await fadeTo(b,1,300)){ b.remove(); return; }
+      b.classList.add('staged');
+      if(!await sleep(700)){ b.remove(); return; }
+      b.remove();
+      const ok=await tween(900,p=>point(lerp(from,to,ease(p))));
+      if(!ok) return;
+      keys[k].g.setAttribute('opacity','0.4'); keys[k].st.textContent='retired';
+      keys[k+1].g.setAttribute('opacity','1'); flash(keys[k+1].g);
+      authTxt.textContent=`auth-addr → KEY ${k+2}`;
+      flash(acct.g);
+      assetChips.forEach(c=>c.set('teal'));
+      mark(250,470,true);
+      if(!await sleep(1300)) return;
+      assetChips.forEach(c=>c.set('muted'));
+      if(!await sleep(500)) return;
+    }
+    stamp(600,540,'ADDRESS, BALANCE, ASSETS: UNMOVED',true,REDUCED);
+    if(REDUCED) return;
+    if(!await sleep(3800)) return;
+    clearFx();
+  }
+}
+
+/* ======================================================================== */
+/* CHAPTER 4: one shield vs three                                           */
+/* ======================================================================== */
+const SHIELD='M0 -78 L62 -54 L62 8 C62 52 32 74 0 90 C-32 74 -62 52 -62 8 L-62 -54 Z';
+const CRACK='M-6 -78 L8 -44 L-10 -14 L9 18 L-5 52 L4 86';
+function shield(parent,x,y,color,title,sub){
+  const g=el('g',{class:'shield '+color,transform:`translate(${x},${y})`},parent);
+  el('path',{class:'body',d:SHIELD},g);
+  el('path',{class:'crack',d:CRACK},g);
+  el('text',{class:'s-title',x:0,y:-4,'text-anchor':'middle'},g,title);
+  const s=el('text',{class:'s-sub',x:0,y:16,'text-anchor':'middle'},g,sub);
+  return {g,s,color,x,y};
+}
+async function strike(x,yTop,yHit){
+  const d=`M${x+6} ${yTop} L${x-12} ${yTop+(yHit-yTop)*.45} L${x+8} ${yTop+(yHit-yTop)*.55} L${x-4} ${yHit}`;
+  const b=el('path',{class:'bolt',d},FX);
+  const len=b.getTotalLength();
+  b.setAttribute('stroke-dasharray',len);
+  const ok=await tween(320,p=>b.setAttribute('stroke-dashoffset',(len*(1-p)).toFixed(1)));
+  setTimeout(()=>b.remove(),REDUCED?0:260);
+  return ok;
+}
+async function ch4(){
+  const t=token;
+  const label=el('text',{class:'top-label',x:600,y:56,'text-anchor':'middle'},SCENE,'');
+  const foot=el('text',{class:'stage-footnote',x:600,y:604,'text-anchor':'middle'},SCENE,'');
+  const partA=el('g',{},SCENE), partB=el('g',{},SCENE);
+  const one=shield(partA,600,280,'amber','POST-QUANTUM','one scheme only');
+  const lockA=chip(partA,600,440,250,'ACCOUNT LOCKED','teal');
+  el('line',{class:'flink-dim',x1:600,y1:370,x2:600,y2:428},partA);
+  const three=[
+    shield(partB,330,270,'blue','ELLIPTIC','Ed25519'),
+    shield(partB,600,270,'amber','LATTICE','Falcon-1024'),
+    shield(partB,870,270,'violet','HASH','WOTS · SHA-256')
+  ];
+  three.forEach(s=>el('path',{class:'flink-dim',d:`M${s.x} 362 Q${s.x} 420 600 470`},partB));
+  const lockB=chip(partB,600,482,330,'SPEND NEEDS ALL THREE SIGNATURES','teal');
+
+  while(t.alive){
+    /* Part A: a single assumption, a single point of failure. */
+    label.textContent='ONE HARD PROBLEM · ONE POINT OF FAILURE';
+    foot.textContent='“POST-QUANTUM” MEANS BELIEVED SAFE, NOT PROVEN SAFE';
+    partA.setAttribute('opacity','1'); partB.setAttribute('opacity','0');
+    one.g.setAttribute('class','shield amber'); one.s.textContent='one scheme only';
+    lockA.set('teal','ACCOUNT LOCKED');
+    if(!await sleep(1200)) return;
+    if(!await strike(600,90,200)) return;
+    one.g.setAttribute('class','shield amber broken'); one.s.textContent='broken by new math';
+    if(!await sleep(500)) return;
+    lockA.set('red','ACCOUNT OPEN TO A FORGER');
+    mark(755,440,false);
+    if(!await sleep(2400)) return;
+    if(REDUCED) partA.setAttribute('opacity','0');
+    else if(!await fadeTo(partA,0,400)) return;
+
+    /* Part B: three unrelated assumptions; one surviving is enough. */
+    clearFx();
+    label.textContent='THREE UNRELATED HARD PROBLEMS';
+    foot.textContent='A FORGER MUST BREAK ALL THREE AT ONCE';
+    three.forEach(s=>{ s.g.setAttribute('class','shield '+s.color); });
+    three[0].s.textContent='Ed25519'; three[1].s.textContent='Falcon-1024'; three[2].s.textContent='WOTS · SHA-256';
+    lockB.set('teal','SPEND NEEDS ALL THREE SIGNATURES');
+    if(REDUCED) partB.setAttribute('opacity','1');
+    else if(!await fadeTo(partB,1,400)) return;
+    if(!await sleep(900)) return;
+    for(let i=0;i<3;i++){
+      const s=three[i];
+      if(!await strike(s.x,80,190)) return;
+      if(i<2){
+        s.g.setAttribute('class','shield '+s.color+' broken'); s.s.textContent='broken';
+      } else {
+        mark(s.x,190,true); s.s.textContent='holds';
+      }
+      if(!await sleep(800)) return;
+    }
+    lockB.set('teal','STILL LOCKED · ONE SURVIVOR IS ENOUGH');
+    flash(lockB.g);
+    stamp(600,560,'A FORGER NEEDS ALL THREE',true,REDUCED);
+    if(REDUCED) return;
+    if(!await sleep(3800)) return;
+    clearFx();
+  }
+}
+
+/* ======================================================================== */
+/* CHAPTER 9: the four properties, plus the triple                          */
+/* ======================================================================== */
+const PANELS=[
+  {x:315,y:160,n:'1',title:'HIDDEN UNTIL IT SIGNS',l1:'a stage’s keys go public only in the spend',l2:'that moves the account to an unseen stage',tag:'CH 1 · 6'},
+  {x:885,y:160,n:'2',title:'STABLE ADDRESS',l1:'address, balance and assets never move;',l2:'nobody who pays you learns anything new',tag:'CH 2 · 3'},
+  {x:315,y:350,n:'3',title:'NO ON-CHAIN STATE',l1:'no contract storage, no upgrade key, no admin;',l2:'only the account’s auth-addr changes',tag:'CH 3 · 6'},
+  {x:885,y:350,n:'4',title:'CHEAP ROTATION',l1:'rides inside the spend: four minimum fees,',l2:'about 0.004 ALGO, native opcodes',tag:'CH 5 · 6'}
+];
+async function ch9(){
+  const t=token;
+  topLabel('BUNKER MODE, WITHOUT THE BUNKER');
+  const groups=PANELS.map(p=>{
+    const g=el('g',{transform:`translate(${p.x},${p.y})`,opacity:'0'},SCENE);
+    el('rect',{class:'gate-box',x:-260,y:-72,width:520,height:144,rx:12},g);
+    el('circle',{cx:-226,cy:-38,r:13,fill:'var(--teal)'},g);
+    el('text',{class:'panel-num',x:-226,y:-33,'text-anchor':'middle'},g,p.n);
+    el('text',{class:'node-title',x:-202,y:-33},g,p.title);
+    el('text',{class:'node-sub',x:-202,y:0},g,p.l1);
+    el('text',{class:'node-sub',x:-202,y:20},g,p.l2);
+    chip(g,200,46,90,'↩ '+p.tag,'muted');
+    return g;
+  });
+  const bar=el('g',{transform:'translate(600,500)',opacity:'0'},SCENE);
+  el('rect',{class:'gate-box',x:-430,y:-30,width:860,height:60,rx:12},bar);
+  chip(bar,-330,0,150,'ELLIPTIC · Ed25519','blue');
+  chip(bar,-160,0,170,'LATTICE · Falcon-1024','amber');
+  chip(bar,20,0,170,'HASH · WOTS / SHA-256','violet');
+  el('text',{class:'node-sub',x:125,y:4},bar,'every stage · a forger needs all three');
+  while(t.alive){
+    groups.forEach(g=>g.setAttribute('opacity','0')); bar.setAttribute('opacity','0');
+    if(!await sleep(500)) return;
+    for(let i=0;i<groups.length;i++){
+      if(!await fadeTo(groups[i],1,420)) return;
+      mark(PANELS[i].x+230,PANELS[i].y-40,true);
+      if(!await sleep(900)) return;
+    }
+    if(!await fadeTo(bar,1,420)) return;
+    stamp(600,590,'BUNKER-MODE SECURITY · NO MIGRATIONS',true,REDUCED);
+    if(REDUCED) return;
+    if(!await sleep(5200)) return;
+    clearFx();
+  }
+}
+
+/* ======================================================================== */
+/* CHAPTER NAVIGATION                                                       */
+/* ======================================================================== */
+const frame=$('frame'), iframe=$('embed');
+let current=-1, iframeReady=false, pendingScene=null;
+iframe.addEventListener('load',()=>{
+  iframeReady=true;
+  if(pendingScene!==null){ iframe.contentWindow.postMessage({rotatingScene:pendingScene},'*'); pendingScene=null; }
+});
+function showEmbed(scene){
+  frame.classList.add('embedded');
+  if(!iframe.getAttribute('src')){ iframe.src=`rotating.html?embed=1&scene=${scene}`; return; }
+  if(iframeReady) iframe.contentWindow.postMessage({rotatingScene:scene},'*');
+  else pendingScene=scene;
+}
+function hideEmbed(){
+  frame.classList.remove('embedded');
+  if(iframeReady) iframe.contentWindow.postMessage({rotatingStop:true},'*');
+}
+
+const pad=k=>String(k).padStart(2,'0');
+function renderCaption(n){
+  const c=chapters[n], inner=$('capInner');
+  inner.classList.remove('swap'); void inner.offsetWidth; inner.classList.add('swap');
+  $('capKicker').textContent='CHAPTER '+pad(n+1);
+  $('capTitle').textContent=c.title;
+  $('capBody').innerHTML=c.body;
+  $('capTake').textContent=c.take;
+  const terms=[...$('capBody').querySelectorAll('dfn')];
+  $('capTerms').textContent=terms.length?'Hover or tap the underlined terms for a definition.':'';
+  $('counter').textContent=pad(n+1)+' / '+pad(chapters.length);
+  $('btnPrev').disabled=(n===0);
+  $('btnNext').disabled=(n===chapters.length-1);
+  document.querySelectorAll('.scene-dot').forEach((d,i)=>{
+    d.classList.toggle('active',i===n);
+    d.setAttribute('aria-current',i===n?'step':'false');
+  });
+}
+async function setChapter(n,force=false){
+  n=Math.max(0,Math.min(chapters.length-1,n));
+  if(n===current && !force) return;
+  token.alive=false; token={alive:true};
+  current=n;
+  renderCaption(n);
+  clearFx();
+  while(SCENE.firstChild) SCENE.firstChild.remove();
+  const c=chapters[n];
+  if(c.embed!==undefined){ showEmbed(c.embed); return; }
+  hideEmbed();
+  SCENE.setAttribute('opacity','0');
+  const run=c.run();
+  await fadeTo(SCENE,1,300);
+  await run;
+}
+
+(function(){
+  chapters.forEach((c,i)=>{
+    const b=document.createElement('button');
+    b.className='scene-dot';
+    b.setAttribute('aria-label',`Chapter ${i+1}: ${c.title}`);
+    b.addEventListener('click',()=>setChapter(i));
+    $('dots').appendChild(b);
+  });
+  $('btnPrev').addEventListener('click',()=>setChapter(current-1));
+  $('btnNext').addEventListener('click',()=>setChapter(current+1));
+  $('btnReplay').addEventListener('click',()=>{
+    const c=chapters[current];
+    if(c.embed!==undefined){ iframeReady=false; iframe.src=`rotating.html?embed=1&scene=${c.embed}&r=${Date.now()}`; }
+    else setChapter(current,true);
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.target.closest && e.target.closest('dfn')) return;
+    if(e.key==='ArrowRight') setChapter(current+1);
+    if(e.key==='ArrowLeft') setChapter(current-1);
+  });
+  setChapter(0);
+})();
+</script>
+</body>
+</html>

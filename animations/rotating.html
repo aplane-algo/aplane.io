@@ -1,9 +1,13 @@
 <!doctype html>
 <html lang="en">
+<script>
+/* Embed mode is set before the body renders so the page chrome never flashes. */
+if(new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');
+</script>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rotating Falcon + Ed25519 Hybrid Accounts</title>
+<title>Rotating Triple Hybrid Accounts</title>
 <style>
 :root{
   --bg:#0a0f1d; --bg-high:#101a33; --panel:#131b2f; --panel-deep:#0e1526;
@@ -13,6 +17,7 @@
   --teal:#4fe0c4; --teal-dim:rgba(79,224,196,.13);
   --blue:#6eb5ff; --blue-dim:rgba(110,181,255,.14);
   --red:#f26b6b; --red-dim:rgba(242,107,107,.12);
+  --violet:#b48cff; --violet-dim:rgba(180,140,255,.14);
   --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   --page-bg:#f6f7f2; --page-ink:#111111; --page-muted:#5b5f66;
@@ -87,12 +92,14 @@ text{user-select:none}
 .chip.amber rect{fill:var(--amber-dim);stroke:var(--amber)}
 .chip.teal rect{fill:var(--teal-dim);stroke:var(--teal)}
 .chip.blue rect{fill:var(--blue-dim);stroke:var(--blue)}
+.chip.violet rect{fill:var(--violet-dim);stroke:var(--violet)}
 .chip.red rect{fill:var(--red-dim);stroke:var(--red)}
 .chip.muted rect{fill:rgba(90,100,128,.12);stroke:#3a4663}
 .chip text{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.05em}
 .chip.amber text{fill:var(--amber)}
 .chip.teal text{fill:var(--teal)}
 .chip.blue text{fill:var(--blue)}
+.chip.violet text{fill:var(--violet)}
 .chip.red text{fill:var(--red)}
 .chip.muted text{fill:var(--muted)}
 
@@ -122,7 +129,7 @@ text{user-select:none}
 .stamp{animation:stamppop 3.4s ease forwards}
 @keyframes stamppop{0%{opacity:0;transform:scale(1.35)}12%{opacity:1;transform:scale(1)}86%{opacity:1}100%{opacity:0}}
 
-.barrier{stroke:var(--red);stroke-width:4;stroke-linecap:round;opacity:.25;transition:opacity .25s}
+.barrier{stroke:var(--red);stroke-width:4;stroke-linecap:round;transition:opacity .25s}
 .barrier.hot{opacity:1;filter:drop-shadow(0 0 8px rgba(242,107,107,.65))}
 
 /* Legend & Controls */
@@ -132,6 +139,7 @@ text{user-select:none}
 .leg-dot.teal{background:var(--teal);box-shadow:0 0 7px rgba(79,224,196,.5)}
 .leg-dot.amber{background:var(--amber);box-shadow:0 0 7px rgba(240,180,92,.5)}
 .leg-dot.blue{background:var(--blue);box-shadow:0 0 7px rgba(110,181,255,.5)}
+.leg-dot.violet{background:var(--violet);box-shadow:0 0 7px rgba(180,140,255,.5)}
 .leg-dot.red{background:var(--red);box-shadow:0 0 7px rgba(242,107,107,.5)}
 
 .controls{display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0 0;flex-wrap:wrap}
@@ -161,19 +169,25 @@ text{user-select:none}
 .caption p{color:var(--page-muted);font-size:15.5px;line-height:1.55}
 .caption p strong{font-weight:600;color:var(--page-ink)}
 .caption code{font-family:var(--mono);font-size:13.5px;background:#e8ebe2;padding:1px 5px;border-radius:4px;color:#111}
+
+/* Embed mode (?embed=1&scene=N): the stage alone, for other pages to frame */
+html.embed,html.embed body{overflow:hidden;background:#0a0f1d;padding:0;min-height:0}
+html.embed header,html.embed .controls,html.embed .legend,html.embed .caption{display:none}
+html.embed .wrap{max-width:none;padding:0}
+html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
 </style>
 </head>
 <body>
 
 <header class="wrap">
-  <h1>Rotating Falcon + Ed25519 Hybrid Accounts</h1>
-  <p class="sub">A fixed Algorand account whose authorizing Falcon-1024 + Ed25519 LogicSig rotates on every spend—hiding active public keys behind a SHA-512/256 hash at rest and verifying both signatures in flight.</p>
+  <h1>Rotating Triple Hybrid Accounts</h1>
+  <p class="sub">A fixed Algorand account whose authorizing LogicSig rotates on every spend. Each stage’s keys stay hidden behind a hash until it signs, and that same spend hands control to a fresh, never-seen stage—whose signatures must pass Ed25519, Falcon-1024 and hash-based WOTS checks at once.</p>
 </header>
 
 <main class="wrap">
   <div class="stage-frame">
     <svg id="stage" viewBox="0 0 1200 640" role="img"
-         aria-label="Animation showing Rotating Falcon-1024 and Ed25519 hybrid accounts on Algorand">
+         aria-label="Animation showing rotating triple hybrid accounts on Algorand">
       <defs>
         <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
           <path class="grid-line" d="M44 0H0V44" fill="none"/>
@@ -198,7 +212,7 @@ text{user-select:none}
           <rect class="node-box" x="-105" y="-40" width="210" height="80" rx="14"/>
           <circle class="node-dot" cx="-83" cy="-16" r="4"/>
           <text class="node-title" x="0" y="-6" text-anchor="middle">ACCOUNT A</text>
-          <text class="node-sub" x="0" y="16" text-anchor="middle">R4XK...Q3TZ (static key)</text>
+          <text class="node-sub" x="0" y="16" text-anchor="middle">static Falcon LogicSig</text>
         </g>
 
         <!-- Static Auth Box -->
@@ -212,7 +226,7 @@ text{user-select:none}
           <g class="chk" id="s0Chk1">
             <circle cx="395" cy="305" r="7"/>
             <path class="tick" d="M391.5 305 l2.6 2.9 l4.8 -5.6"/>
-            <text class="chk-text" x="412" y="309">verify_signature (TxID, pk)</text>
+            <text class="chk-text" x="412" y="309">falcon_verify (TxID, sig, pk)</text>
           </g>
           <g class="chk" id="s0Chk2">
             <circle cx="395" cy="338" r="7"/>
@@ -262,7 +276,7 @@ text{user-select:none}
         <g id="s1HkdfBox" transform="translate(185,415)">
           <rect class="gate-box" x="-125" y="-48" width="250" height="96" rx="12"/>
           <text class="gate-title" x="0" y="-22" text-anchor="middle">HKDF-SHA-512 DERIVER</text>
-          <text class="node-sub" x="0" y="2" text-anchor="middle">salt: APLANE_ROTATING_HYBRID_V1</text>
+          <text class="node-sub" x="0" y="2" text-anchor="middle">salt: APLANE_ROTATING_TRIPLE_V1</text>
           <text class="node-sub" x="0" y="22" text-anchor="middle" fill="var(--teal)">info: tag ‖ GenesisHash ‖ u64be(i)</text>
         </g>
 
@@ -281,13 +295,17 @@ text{user-select:none}
             <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
             <text class="node-title" x="-308" y="-14">STAGE 0 (A₀ = ACCOUNT ADDRESS)</text>
             <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_0) → R4XK...Q3TZ</text>
-            <g class="chip amber" transform="translate(65,-14)">
-              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #0</text>
+            <g class="chip blue" transform="translate(30,-14)">
+              <rect x="-40" y="-11" width="80" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Ed25519 #0</text>
             </g>
-            <g class="chip blue" transform="translate(232,-14)">
-              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #0</text>
+            <g class="chip amber" transform="translate(136,-14)">
+              <rect x="-52" y="-11" width="104" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Falcon-1024 #0</text>
+            </g>
+            <g class="chip violet" transform="translate(250,-14)">
+              <rect x="-43" y="-11" width="86" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">WOTS-w16 #0</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -300,13 +318,17 @@ text{user-select:none}
             <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
             <text class="node-title" x="-308" y="-14">STAGE 1 (A₁ · NEXT AUTHORIZER)</text>
             <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_1) → 7JQP...M9LA</text>
-            <g class="chip amber" transform="translate(65,-14)">
-              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #1</text>
+            <g class="chip blue" transform="translate(30,-14)">
+              <rect x="-40" y="-11" width="80" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Ed25519 #1</text>
             </g>
-            <g class="chip blue" transform="translate(232,-14)">
-              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #1</text>
+            <g class="chip amber" transform="translate(136,-14)">
+              <rect x="-52" y="-11" width="104" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Falcon-1024 #1</text>
+            </g>
+            <g class="chip violet" transform="translate(250,-14)">
+              <rect x="-43" y="-11" width="86" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">WOTS-w16 #1</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -319,13 +341,17 @@ text{user-select:none}
             <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
             <text class="node-title" x="-308" y="-14">STAGE 2 (A₂ · FUTURE STAGE)</text>
             <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_2) → X3VN...K4WP</text>
-            <g class="chip amber" transform="translate(65,-14)">
-              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #2</text>
+            <g class="chip blue" transform="translate(30,-14)">
+              <rect x="-40" y="-11" width="80" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Ed25519 #2</text>
             </g>
-            <g class="chip blue" transform="translate(232,-14)">
-              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #2</text>
+            <g class="chip amber" transform="translate(136,-14)">
+              <rect x="-52" y="-11" width="104" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Falcon-1024 #2</text>
+            </g>
+            <g class="chip violet" transform="translate(250,-14)">
+              <rect x="-43" y="-11" width="86" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">WOTS-w16 #2</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -337,14 +363,18 @@ text{user-select:none}
           <g class="node" id="s1Card3" transform="translate(765,505)">
             <rect class="gate-box" x="-330" y="-44" width="660" height="88" rx="12" fill="url(#hashShieldGrad)"/>
             <text class="node-title" x="-308" y="-14">STAGE 3 … ∞ (UNBOUNDED CHAIN)</text>
-            <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_i) → DERIVED ON DEMAND</text>
-            <g class="chip amber" transform="translate(65,-14)">
-              <rect x="-78" y="-11" width="156" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x01 → Falcon-1024 #i</text>
+            <text class="node-sub" x="-308" y="10">SHA-512/256("Program" ‖ TEAL_i) → ON DEMAND</text>
+            <g class="chip blue" transform="translate(30,-14)">
+              <rect x="-40" y="-11" width="80" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Ed25519 #i</text>
             </g>
-            <g class="chip blue" transform="translate(232,-14)">
-              <rect x="-74" y="-11" width="148" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">0x02 → Ed25519 #i</text>
+            <g class="chip amber" transform="translate(136,-14)">
+              <rect x="-52" y="-11" width="104" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">Falcon-1024 #i</text>
+            </g>
+            <g class="chip violet" transform="translate(250,-14)">
+              <rect x="-43" y="-11" width="86" height="22" rx="6"/>
+              <text x="0" y="4" text-anchor="middle">WOTS-w16 #i</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -354,7 +384,7 @@ text{user-select:none}
         </g>
 
         <text class="stage-footnote" x="600" y="598" text-anchor="middle">
-          ONE 64B SEED EXPANDS TO EVERY STAGE · EACH STAGE EMBEDS FRESH FALCON-1024 + ED25519 KEYS
+          ONE 64B SEED EXPANDS TO EVERY STAGE · EACH STAGE EMBEDS FRESH ED25519 + FALCON + WOTS KEYS
         </text>
       </g>
 
@@ -407,6 +437,10 @@ text{user-select:none}
         </g>
 
         <!-- Dual Stage Key Chips (above & below Account A) -->
+        <g class="chip violet" id="rotWotsChip" transform="translate(185,173)">
+          <rect x="-82" y="-12" width="164" height="24" rx="7"/>
+          <text id="rotWotsChipText" x="0" y="4" text-anchor="middle">WOTS-W16 KEY #0</text>
+        </g>
         <g class="chip amber" id="rotFalconChip" transform="translate(185,205)">
           <rect x="-82" y="-12" width="164" height="24" rx="7"/>
           <text id="rotFalconChipText" x="0" y="4" text-anchor="middle">FALCON-1024 KEY #0</text>
@@ -428,60 +462,68 @@ text{user-select:none}
           <rect class="gate-box" id="rotGateBox" x="355" y="176" width="330" height="268" rx="12"/>
           <text class="gate-title" id="rotGateTitle" x="374" y="202">STAGE 0 LOGICSIG (A₀) · TEAL V13</text>
           <g class="chip teal" id="rotStageBadge">
-            <rect id="rotStageBadgeRect" x="372" y="214" width="230" height="22" rx="6"/>
-            <text id="rotStageBadgeText" x="487" y="229" text-anchor="middle">🔒 HASH-SHIELDED UNTIL SIGNING</text>
+            <rect id="rotStageBadgeRect" x="372" y="214" width="262" height="22" rx="6"/>
+            <text id="rotStageBadgeText" x="503" y="229" text-anchor="middle">🔒 HASH-SHIELDED UNTIL SIGNING</text>
           </g>
 
-          <!-- Check 1: Falcon-1024 -->
+          <!-- Check 1: Falcon-1024 (lattice) -->
           <g class="chk" id="rotChk1">
-            <circle cx="383" cy="264" r="7"/>
-            <path class="tick" d="M379.5 264 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 259.5 L387.5 268.5 M387.5 259.5 L378.5 268.5"/>
-            <text class="chk-text" x="400" y="268">falcon_verify (TxID, </text>
-            <text class="chk-text" x="596" y="268">)</text>
+            <circle cx="383" cy="258" r="7"/>
+            <path class="tick" d="M379.5 258 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 253.5 L387.5 262.5 M387.5 253.5 L378.5 262.5"/>
+            <text class="chk-text" x="400" y="262">falcon_verify (TxID, </text>
+            <text class="chk-text" x="596" y="262">)</text>
           </g>
 
-          <!-- Check 2: Ed25519 -->
+          <!-- Check 2: Ed25519 (elliptic curve) -->
           <g class="chk" id="rotChk2">
-            <circle cx="383" cy="296" r="7"/>
-            <path class="tick" d="M379.5 296 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 291.5 L387.5 300.5 M387.5 291.5 L378.5 300.5"/>
-            <text class="chk-text" x="400" y="300">ed25519verify_bare (TxID, </text>
-            <text class="chk-text" x="628" y="300">)</text>
+            <circle cx="383" cy="286" r="7"/>
+            <path class="tick" d="M379.5 286 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 281.5 L387.5 290.5 M387.5 281.5 L378.5 290.5"/>
+            <text class="chk-text" x="400" y="290">ed25519verify_bare (TxID, </text>
+            <text class="chk-text" x="628" y="290">)</text>
           </g>
 
-          <!-- Check 3: Mandatory RekeyTo Next Stage -->
+          <!-- Check W: WOTS-w16 (hash-based, 67 SHA-256 chains) -->
+          <g class="chk" id="rotChkW">
+            <circle cx="383" cy="314" r="7"/>
+            <path class="tick" d="M379.5 314 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 309.5 L387.5 318.5 M387.5 309.5 L378.5 318.5"/>
+            <text class="chk-text" x="400" y="318">wots: sha256 chains (TxID, </text>
+            <text class="chk-text" x="636" y="318">)</text>
+          </g>
+
+          <!-- Check 3: rekey away from the account (program) -->
           <g class="chk" id="rotChk3">
-            <circle cx="383" cy="328" r="7"/>
-            <path class="tick" d="M379.5 328 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 323.5 L387.5 332.5 M387.5 323.5 L378.5 332.5"/>
-            <text class="chk-text" id="rotChk3Text" x="400" y="332">RekeyTo == A₁ (next stage)</text>
+            <circle cx="383" cy="342" r="7"/>
+            <path class="tick" d="M379.5 342 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 337.5 L387.5 346.5 M387.5 337.5 L378.5 346.5"/>
+            <text class="chk-text" id="rotChk3Text" x="400" y="346">RekeyTo ≠ zero · ≠ account</text>
           </g>
 
-          <!-- Check 4: CloseRemainderTo == Zero & window <= 100 -->
+          <!-- Check 4: no close-out, window <= 100 rounds (program) -->
           <g class="chk" id="rotChk4">
-            <circle cx="383" cy="360" r="7"/>
-            <path class="tick" d="M379.5 360 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 355.5 L387.5 364.5 M387.5 355.5 L378.5 364.5"/>
-            <text class="chk-text" id="rotChk4Text" x="400" y="364">no close-out · Δvalid ≤ 100 rds</text>
+            <circle cx="383" cy="370" r="7"/>
+            <path class="tick" d="M379.5 370 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 365.5 L387.5 374.5 M387.5 365.5 L378.5 374.5"/>
+            <text class="chk-text" id="rotChk4Text" x="400" y="374">no close-out · Δvalid ≤ 100 rds</text>
           </g>
 
-          <!-- Check 5: Target stage open-check (Signer Rule 4) -->
+          <!-- Check 5: signer picks the next stage and runs the open test -->
           <g class="chk" id="rotChk5">
-            <circle cx="383" cy="392" r="7"/>
-            <path class="tick" d="M379.5 392 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 387.5 L387.5 396.5 M387.5 387.5 L378.5 396.5"/>
-            <text class="chk-text" id="rotChk5Text" x="400" y="396">signer: stage 1 open-test passed</text>
+            <circle cx="383" cy="398" r="7"/>
+            <path class="tick" d="M379.5 398 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 393.5 L387.5 402.5 M387.5 393.5 L378.5 402.5"/>
+            <text class="chk-text" id="rotChk5Text" x="400" y="402">signer: target A₁ · open test ok</text>
           </g>
-
-          <text class="gate-result" id="rotGateResult" x="374" y="426">→ spend + rotate to A₁ authorized</text>
+          <text class="gate-result" id="rotGateResult" x="374" y="430">→ spend + rotate to A₁ authorized</text>
         </g>
 
         <!-- Next Stage Queued Slot (bottom below gate) -->
         <g id="queuedSlot" transform="translate(520,508)">
           <rect class="gate-box queued" x="-165" y="-30" width="330" height="60" rx="10" fill="url(#hashShieldGrad)"/>
           <text id="queuedTitle" x="0" y="-6" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)">NEXT: STAGE 1 (A₁ · 7JQP...M9LA)</text>
-          <text id="queuedSub" x="0" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">🔒 SHA-512/256 hash only · Falcon #1 + Ed25519 #1 hidden</text>
+          <text id="queuedSub" x="0" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">🔒 32-byte hash only · all 3 keys of stage 1 hidden</text>
         </g>
 
         <!-- Recipient Node (right) -->
@@ -526,8 +568,9 @@ text{user-select:none}
 
   <div class="legend">
     <div class="leg-item"><span class="leg-dot teal"></span>hash-shielded stage / verified spend</div>
-    <div class="leg-item"><span class="leg-dot amber"></span>Falcon-1024 signature (PQ)</div>
-    <div class="leg-item"><span class="leg-dot blue"></span>Ed25519 signature (classical)</div>
+    <div class="leg-item"><span class="leg-dot blue"></span>Ed25519 signature (elliptic curve)</div>
+    <div class="leg-item"><span class="leg-dot amber"></span>Falcon-1024 signature (lattice, PQ)</div>
+    <div class="leg-item"><span class="leg-dot violet"></span>WOTS-w16 signature (hash-based, PQ)</div>
     <div class="leg-item"><span class="leg-dot red"></span>exposed or rejected replay</div>
   </div>
 
@@ -552,23 +595,23 @@ const STAGE_ADDRS=['R4XK...Q3TZ','7JQP...M9LA','X3VN...K4WP','B8MC...T2ZR','Q5LD
 const scenes=[
   {
     title:'The static-key problem: spend once, expose your public key forever',
-    body:'In a conventional account, your public key stays hidden behind your 32-byte address hash only until your <strong>first transaction</strong>. The moment you sign and submit a spend, the public key is published on-chain and remains the account’s active authorizer indefinitely—giving a future quantum or classical adversary unlimited time at rest to attack it.'
+    body:'A static Falcon-1024 LogicSig account keeps its public key hidden inside the program, behind its 32-byte address hash, only until its <strong>first transaction</strong>. The moment it signs a spend, the program and its public key are published on-chain, and that same key stays the account’s authorizer indefinitely—giving a future quantum or classical adversary unlimited time at rest to attack it. (An ordinary Algorand account is worse off: its address <em>is</em> its Ed25519 public key, exposed from the day the account is created.)'
   },
   {
-    title:'One seed, an unbounded chain of hash-shielded hybrid stages',
-    body:'<code>aplane.rotating-hybrid.v1</code> replaces a static key with a deterministic sequence of per-stage TEAL v13 LogicSigs derived from one 24-word BIP-39 seed via <strong>HKDF-SHA-512</strong> (bound to the network genesis hash and stage number <code>i</code>). Each stage embeds a fresh <strong>Falcon-1024</strong> public key and a fresh <strong>Ed25519</strong> public key. Until stage <code>i</code> signs, only its 32-byte <code>SHA-512/256("Program" ‖ bytecode)</code> address <code>Aᵢ</code> exists on-chain.'
+    title:'One seed, an unbounded chain of hash-shielded stages',
+    body:'<code>aplane.rotating-triple-hybrid.v1</code> replaces a static key with a sequence of per-stage TEAL v13 LogicSigs, all derived from one 24-word BIP-39 seed via <strong>HKDF-SHA-512</strong> (bound to the network genesis hash and the stage number <code>i</code>). Until stage <code>i</code> signs, the chain holds only its 32-byte address <code>Aᵢ = SHA-512/256("Program" ‖ bytecode)</code>—none of its keys. Each stage embeds three fresh public keys from unrelated families: <strong>Ed25519</strong> (elliptic curve), <strong>Falcon-1024</strong> (lattice) and <strong>WOTS-w16</strong> (hash-based, SHA-256 only).'
   },
   {
     title:'Spend & atomic rotation: the spend that reveals A₀ hands authority to A₁',
-    body:'To spend from Stage 0, the signer first runs an open-test proving Stage 1 can sign later, then signs the transaction ID with <strong>both</strong> Stage 0’s Falcon-1024 key and Ed25519 key. The TEAL v13 program verifies both signatures on-chain, forbids closing the account, enforces a tight validity window (<code>≤ 100</code> rounds), and requires <code>RekeyTo = A₁</code>. In the same block that <code>A₀</code>’s keys are revealed, authority moves to the unrevealed <code>A₁</code>.'
+    body:'To spend from Stage 0, the signer builds a spend that rekeys the account to <code>A₁</code>, refuses any other target, and runs an open test proving Stage 1 can sign later. Only then does it sign the transaction ID with <strong>all three</strong> of Stage 0’s keys. On-chain, the TEAL v13 program checks the Ed25519 and Falcon-1024 signatures with built-in opcodes and the WOTS signature with 67 SHA-256 hash chains, requires the transaction to rekey the account away from itself, forbids closing the account, and enforces a tight validity window (<code>≤ 100</code> rounds). In the same block that <code>A₀</code>’s keys are revealed, authority moves to the unrevealed <code>A₁</code>.'
   },
   {
     title:'Walking forward through fresh hashes — with a stateless signer',
-    body:'Account A’s address (<code>R4XK...Q3TZ</code>) never changes, while its <code>auth-addr</code> walks monotonically forward on every spend: <code>A₀ → A₁ → A₂ → A₃…</code>. Crucially, the signer stores <strong>no mutable stage counter</strong> in the key file: it reads the live authorizer from the chain, resolves <code>n</code> against its derivable stage table, and always re-derives <code>Aₙ₊₁</code> directly from the seed—so backups never go stale.'
+    body:'Account A’s address (<code>R4XK...Q3TZ</code>) never changes, while its <code>auth-addr</code> walks monotonically forward on every spend: <code>A₀ → A₁ → A₂ → A₃…</code>. The signer stores <strong>no mutable stage counter</strong>: it reads the live authorizer from the chain, resolves <code>n</code> against its derivable stage table, and re-derives <code>Aₙ₊₁</code> from the seed—so backups never go stale. Signing once per stage is also exactly what a <strong>one-time</strong> WOTS key needs: the chain itself records which stages are spent.'
   },
   {
-    title:'Defense in depth: hash preimage at rest, dual-hybrid in flight, dead keys behind',
-    body:'<strong>1) Retired stages are powerless:</strong> even if an adversary later breaks or steals revealed Stage 0 keys, the ledger rejects any transaction signed by <code>A₀</code> because <code>auth-addr</code> has already moved to <code>A₁</code>.<br><strong>2) Hybrid in flight, hash at rest:</strong> during the ~3-second confirmation window, an attacker would have to break <em>both</em> Falcon-1024 and Ed25519 within 100 rounds; once confirmed, the account is back behind a pure SHA-512/256 preimage shield.'
+    title:'Defense in depth: hash at rest, triple hybrid in flight, dead keys behind',
+    body:'<strong>1) Hash at rest:</strong> the live stage is only a 32-byte hash. No key exists on chain for an attacker to work on, whatever mathematics arrives.<br><strong>2) Retired stages are powerless:</strong> even if an adversary later breaks revealed Stage 0 keys, the ledger rejects any spend from Account A signed by <code>A₀</code> because <code>auth-addr</code> has already moved to <code>A₁</code>.<br><strong>3) Triple hybrid in flight:</strong> a stage’s keys are public only between broadcast and confirmation, about one block. To exploit that moment a forger must break an elliptic curve, a lattice <em>and</em> a hash function, then land a competing transaction first.<br><strong>4) The honest limit:</strong> if a broadcast spend never lands, that stage’s keys are public while it is still the authorizer; the <code>≤ 100</code>-round window keeps that short. If the stage then signs a replacement, its one-time WOTS key no longer counts, and it rests on Falcon-1024 and Ed25519 until a spend lands.'
   }
 ];
 
@@ -653,21 +696,27 @@ function makeSigToken(label,x,y,color){
   return g;
 }
 
-async function slideDualSignals(fFrom,fTo,eFrom,eTo,dur,fColor='#f0b45c',eColor='#6eb5ff'){
-  const bF=makeSigToken('sig_F',fFrom[0],fFrom[1],fColor);
-  const bE=makeSigToken('sig_E',eFrom[0],eFrom[1],eColor);
+/* Signature tokens land inside the gate's check rows, between the brackets. */
+const SIG_POS={F:[562,258],E:[594,286],W:[604,314]};
+function stageSignals(color){
+  return [
+    {label:'sig_F',from:[185,205],to:SIG_POS.F,color:color||'#f0b45c'},
+    {label:'sig_E',from:[185,415],to:SIG_POS.E,color:color||'#6eb5ff'},
+    {label:'sig_W',from:[185,173],to:SIG_POS.W,color:color||'#b48cff'},
+  ];
+}
+async function slideSignals(specs,dur){
+  const toks=specs.map(sp=>makeSigToken(sp.label,sp.from[0],sp.from[1],sp.color));
   if(REDUCED){
-    bF.setAttribute('transform',`translate(${fTo[0]},${fTo[1]})`);
-    bE.setAttribute('transform',`translate(${eTo[0]},${eTo[1]})`);
-    return [bF,bE];
+    specs.forEach((sp,i)=>toks[i].setAttribute('transform',`translate(${sp.to[0]},${sp.to[1]})`));
+    return toks;
   }
   const ok=await tween(dur,p=>{
     const e=ease(p);
-    bF.setAttribute('transform',`translate(${lerp(fFrom[0],fTo[0],e)},${lerp(fFrom[1],fTo[1],e)})`);
-    bE.setAttribute('transform',`translate(${lerp(eFrom[0],eTo[0],e)},${lerp(eFrom[1],eTo[1],e)})`);
+    specs.forEach((sp,i)=>toks[i].setAttribute('transform',`translate(${lerp(sp.from[0],sp.to[0],e)},${lerp(sp.from[1],sp.to[1],e)})`));
   });
-  if(!ok){ bF.remove(); bE.remove(); return null; }
-  return [bF,bE];
+  if(!ok){ toks.forEach(t=>t.remove()); return null; }
+  return toks;
 }
 
 /* Update Top Conveyor Pills for active stage n */
@@ -710,18 +759,19 @@ function configureRotatingStage(n, showRetired){
   $('rotAuthSub').textContent=`auth-addr: A${subNum(n)} (Stage ${n})`;
   $('rotFalconChipText').textContent=`FALCON-1024 KEY #${n}`;
   $('rotEdChipText').textContent=`ED25519 KEY #${n}`;
+  $('rotWotsChipText').textContent=`WOTS-W16 KEY #${n}`;
   $('rotGateTitle').textContent=`STAGE ${n} LOGICSIG (A${subNum(n)}) · TEAL V13`;
   $('rotStageBadge').setAttribute('class','chip teal');
   $('rotStageBadgeText').textContent='🔒 HASH-SHIELDED UNTIL SIGNING';
-  $('rotChk3Text').textContent=`RekeyTo == A${subNum(next)} (Stage ${next})`;
+  $('rotChk3Text').textContent='RekeyTo ≠ zero · ≠ account';
   $('rotChk4Text').textContent='no close-out · Δvalid ≤ 100 rds';
-  $('rotChk5Text').textContent=`signer: stage ${next} open-test passed`;
+  $('rotChk5Text').textContent=`signer: target A${subNum(next)} · open test ok`;
   $('rotGateResult').textContent=`→ spend + rotate to A${subNum(next)} authorized`;
   $('rotGateResult').classList.remove('on','fail');
-  ['rotChk1','rotChk2','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.remove('done','fail'));
+  ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.remove('done','fail'));
 
   $('queuedTitle').textContent=`NEXT: STAGE ${next} (A${subNum(next)} · ${STAGE_ADDRS[next]||'DERIVED'})`;
-  $('queuedSub').textContent=`🔒 SHA-512/256 hash only · Falcon #${next} + Ed25519 #${next} hidden`;
+  $('queuedSub').textContent=`🔒 32-byte hash only · all 3 keys of stage ${next} hidden`;
   $('queuedSlot').setAttribute('transform','translate(520,508)');
   $('queuedSlot').setAttribute('opacity','1');
 
@@ -759,7 +809,7 @@ async function animateStageRotation(n){
         swapped=true;
         configureRotatingStage(next, true);
         $('queuedTitle').textContent=`NEXT: STAGE ${afterNext} (A${subNum(afterNext)} · ${STAGE_ADDRS[afterNext]||'DERIVED'})`;
-        $('queuedSub').textContent=`🔒 SHA-512/256 hash only · Falcon #${afterNext} + Ed25519 #${afterNext} hidden`;
+        $('queuedSub').textContent=`🔒 32-byte hash only · all 3 keys of stage ${afterNext} hidden`;
       }
       const v=ease((p-0.48)/0.52);
       $('activeStageGate').setAttribute('transform',`translate(0,${lerp(135,0,v)})`);
@@ -923,28 +973,29 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   $('rotChk5').classList.add('done');
   if(!await sleep(650)){ bub.remove(); return false; }
 
-  /* Step 2: Dual signals (Falcon-1024 + Ed25519) travel into TEAL gate */
+  /* Step 2: Ed25519, Falcon-1024 and WOTS signatures travel into the TEAL gate */
   updateConveyorPills(stageIdx, true);
   $('rotStageBadge').setAttribute('class','chip amber');
   $('rotStageBadgeText').textContent=`SIGNING: STAGE ${stageIdx} KEYS REVEALED IN TX`;
 
-  const balls=await slideDualSignals([185,205],[562,264],[185,415],[594,296],1180);
+  const balls=await slideSignals(stageSignals(),1180);
   if(!balls){ bub.remove(); return false; }
-  const [bF,bE]=balls;
+  const drop=()=>balls.forEach(b=>b.remove());
 
-  if(!await sleep(380)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  if(!await sleep(380)){ drop(); bub.remove(); return false; }
   $('rotChk1').classList.add('done');
   $('rotChk2').classList.add('done');
-  if(!await sleep(760)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  $('rotChkW').classList.add('done');
+  if(!await sleep(760)){ drop(); bub.remove(); return false; }
 
   $('rotChk3').classList.add('done');
   $('rotChk4').classList.add('done');
-  if(!await sleep(720)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  if(!await sleep(720)){ drop(); bub.remove(); return false; }
 
   $('rotGateResult').classList.add('on');
-  if(!await sleep(680)){ bF.remove(); bE.remove(); bub.remove(); return false; }
+  if(!await sleep(680)){ drop(); bub.remove(); return false; }
 
-  bF.remove(); bE.remove();
+  drop();
   bub.classList.remove('staged');
 
   /* Step 3: Payment settles AND stage rotates atomically */
@@ -991,7 +1042,7 @@ async function loopScene3(){
 async function loopScene4(){
   const t=token;
   showLayer('layerRotating');
-  $('rotFootnote').textContent='RETIRED KEYS CANNOT AUTHORIZE SPENDS · IN-FLIGHT SPENDS REQUIRE BOTH FALCON + ED25519';
+  $('rotFootnote').textContent='RETIRED KEYS CANNOT AUTHORIZE ACCOUNT A · IN FLIGHT, A FORGER MUST BREAK ALL THREE';
 
   while(t.alive){
     /* Scenario A: Attacker tries to spend using revealed/retired Stage 0 keys while Account is at Stage 1 */
@@ -1010,19 +1061,20 @@ async function loopScene4(){
     if(!await fadeTo(badBub,1,380)){ badBub.remove(); return; }
     badBub.classList.add('staged');
 
-    const ballsA=await slideDualSignals([520,122],[562,264],[520,122],[594,296],1150,'#f26b6b','#f26b6b');
+    const ballsA=await slideSignals(stageSignals('#f26b6b').map(sp=>({...sp,from:[520,122]})),1150);
     if(!ballsA){ badBub.remove(); return; }
-    const [bF1,bE1]=ballsA;
+    const dropA=()=>ballsA.forEach(b=>b.remove());
 
-    if(!await sleep(420)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
+    if(!await sleep(420)){ dropA(); badBub.remove(); return; }
     $('rotChk1').classList.add('fail');
     $('rotChk2').classList.add('fail');
+    $('rotChkW').classList.add('fail');
     $('rotGateResult').textContent='→ rejected: account auth-addr is A₁, not A₀';
     $('rotGateResult').classList.add('fail');
     $('rotBarrier').classList.add('hot');
 
-    if(!await sleep(850)){ bF1.remove(); bE1.remove(); badBub.remove(); return; }
-    bF1.remove(); bE1.remove();
+    if(!await sleep(850)){ dropA(); badBub.remove(); return; }
+    dropA();
     badBub.classList.remove('staged');
     if(!await moveBubble(badBub,710,335,775,385,1250,false)){ badBub.remove(); return; }
     mark(775,385,false);
@@ -1048,19 +1100,20 @@ async function loopScene4(){
     if(!await sleep(450)){ okBub.remove(); return; }
     $('rotChk5').classList.add('done');
 
-    const ballsB=await slideDualSignals([185,205],[562,264],[185,415],[594,296],1150);
+    const ballsB=await slideSignals(stageSignals(),1150);
     if(!ballsB){ okBub.remove(); return; }
-    const [bF2,bE2]=ballsB;
-    if(!await sleep(400)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
+    const dropB=()=>ballsB.forEach(b=>b.remove());
+    if(!await sleep(400)){ dropB(); okBub.remove(); return; }
     $('rotChk1').classList.add('done');
     $('rotChk2').classList.add('done');
-    if(!await sleep(680)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
+    $('rotChkW').classList.add('done');
+    if(!await sleep(680)){ dropB(); okBub.remove(); return; }
     $('rotChk3').classList.add('done');
     $('rotChk4').classList.add('done');
-    if(!await sleep(650)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
+    if(!await sleep(650)){ dropB(); okBub.remove(); return; }
     $('rotGateResult').classList.add('on');
-    if(!await sleep(680)){ bF2.remove(); bE2.remove(); okBub.remove(); return; }
-    bF2.remove(); bE2.remove();
+    if(!await sleep(680)){ dropB(); okBub.remove(); return; }
+    dropB();
     okBub.classList.remove('staged');
 
     const mP=moveBubble(okBub,710,295,890,220,1750);
@@ -1088,18 +1141,21 @@ function staticFrame(n){
     showLayer('layerDerivation');
   } else if(n===2){
     showLayer('layerRotating');
+    $('rotFootnote').textContent='THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)';
     configureRotatingStage(1, true);
-    ['rotChk1','rotChk2','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
+    ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     mark(995,252,true);
   } else if(n===3){
     showLayer('layerRotating');
+    $('rotFootnote').textContent='STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED';
     configureRotatingStage(2, true);
-    ['rotChk1','rotChk2','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
+    ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     mark(995,252,true);
   } else {
     showLayer('layerRotating');
+    $('rotFootnote').textContent='RETIRED KEYS CANNOT AUTHORIZE ACCOUNT A · IN FLIGHT, A FORGER MUST BREAK ALL THREE';
     configureRotatingStage(1, true);
     $('rotRecv').setAttribute('transform','translate(995,220)');
     $('rotFlinkMain').setAttribute('y2','220');
@@ -1174,11 +1230,25 @@ function restart(){
   document.querySelectorAll('.scene-dot').forEach(btn=>{
     btn.addEventListener('click',()=>setScene(Number(btn.dataset.scene)));
   });
-  document.addEventListener('keydown',e=>{
-    if(e.key==='ArrowRight') setScene(current+1);
-    if(e.key==='ArrowLeft') setScene(current-1);
+  const params=new URLSearchParams(location.search);
+  const EMBED=params.has('embed');
+  if(!EMBED){
+    document.addEventListener('keydown',e=>{
+      if(e.key==='ArrowRight') setScene(current+1);
+      if(e.key==='ArrowLeft') setScene(current-1);
+    });
+  }
+  /* A framing page can switch scenes, or pause the stage while it is hidden. */
+  window.addEventListener('message',e=>{
+    const d=e.data||{};
+    if(d.rotatingStop){
+      token.alive=false; token={alive:false}; current=-1;
+      while(fx.firstChild) fx.firstChild.remove();
+    } else if(Number.isInteger(d.rotatingScene)){
+      setScene(d.rotatingScene);
+    }
   });
-  setScene(0);
+  setScene(Number(params.get('scene'))||0);
 })();
 </script>
 </body>
