@@ -197,8 +197,8 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
           <stop offset="100%" stop-color="rgba(110,181,255,0.08)"/>
         </linearGradient>
       </defs>
-      <rect width="1200" height="640" fill="var(--bg)"/>
-      <rect width="1200" height="640" fill="url(#grid)" opacity="0.55"/>
+      <rect class="stage-bg" width="1200" height="640" fill="var(--bg)"/>
+      <rect class="stage-bg" width="1200" height="640" fill="url(#grid)" opacity="0.55"/>
 
       <!-- ================================================================ -->
       <!-- SCENE LAYER 1: STATIC KEY EXPOSURE PROBLEM (Scene 0)             -->
@@ -394,32 +394,32 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
       <g id="layerRotating" opacity="0">
         <!-- Top Stage Conveyor / Timeline Bar -->
         <g id="conveyorBar" transform="translate(600,48)">
-          <rect x="-470" y="-24" width="940" height="48" rx="10" fill="#0d1426" stroke="#22304d" stroke-width="1.2"/>
-          <text x="-445" y="4" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)" letter-spacing=".12em">AUTH CHAIN:</text>
+          <rect id="conveyorRect" x="-470" y="-24" width="940" height="48" rx="10" fill="#0d1426" stroke="#22304d" stroke-width="1.2"/>
+          <text id="conveyorLabel" x="-445" y="4" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)" letter-spacing=".12em">AUTH CHAIN:</text>
 
           <g id="pillStage0" transform="translate(-290,0)">
             <rect id="pillRect0" x="-72" y="-14" width="144" height="28" rx="7" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
             <text id="pillText0" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--teal)">A₀ · LIVE</text>
           </g>
-          <text x="-198" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
+          <text id="conveyorArrow0" x="-198" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
 
           <g id="pillStage1" transform="translate(-105,0)">
             <rect id="pillRect1" x="-72" y="-14" width="144" height="28" rx="7" fill="#10192e" stroke="#2b3b5e" stroke-width="1.2"/>
             <text id="pillText1" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)">A₁ · 🔒 HASHED</text>
           </g>
-          <text x="-13" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
+          <text id="conveyorArrow1" x="-13" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
 
           <g id="pillStage2" transform="translate(80,0)">
             <rect id="pillRect2" x="-72" y="-14" width="144" height="28" rx="7" fill="#10192e" stroke="#2b3b5e" stroke-width="1.2"/>
             <text id="pillText2" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)">A₂ · 🔒 HASHED</text>
           </g>
-          <text x="172" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
+          <text id="conveyorArrow2" x="172" y="4" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">→</text>
 
           <g id="pillStage3" transform="translate(265,0)">
             <rect id="pillRect3" x="-72" y="-14" width="144" height="28" rx="7" fill="#10192e" stroke="#2b3b5e" stroke-width="1.2"/>
             <text id="pillText3" x="0" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--muted)">A₃ · 🔒 HASHED</text>
           </g>
-          <text x="405" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--faint)">… Aₙ₊₁</text>
+          <text id="conveyorMore" x="405" y="4" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--faint)">… Aₙ₊₁</text>
         </g>
 
         <!-- Permanent Account A Node (left) -->
@@ -436,20 +436,26 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
           <text class="node-sub" id="rotAuthSub" x="0" y="28" text-anchor="middle" fill="var(--teal)">auth-addr: A₀ (Stage 0)</text>
         </g>
 
-        <!-- Dual Stage Key Chips (above & below Account A) -->
-        <g class="chip violet" id="rotWotsChip" transform="translate(185,173)">
+        <!-- The live stage's three keys, grouped above Account A -->
+        <g id="rotKeyGroup">
+          <rect x="93" y="134" width="184" height="118" rx="10" fill="rgba(14,21,38,.6)" stroke="#2b3b5e" stroke-width="1" stroke-dasharray="4 3"/>
+          <text id="rotKeyGroupLabel" x="185" y="150" text-anchor="middle" font-family="var(--mono)" font-size="9.5" font-weight="600" fill="var(--muted)" letter-spacing=".12em">STAGE 0 KEYS</text>
+        </g>
+        <g class="chip violet" id="rotWotsChip" transform="translate(185,170)">
           <rect x="-82" y="-12" width="164" height="24" rx="7"/>
           <text id="rotWotsChipText" x="0" y="4" text-anchor="middle">WOTS-W16 KEY #0</text>
         </g>
-        <g class="chip amber" id="rotFalconChip" transform="translate(185,205)">
+        <g class="chip amber" id="rotFalconChip" transform="translate(185,201)">
           <rect x="-82" y="-12" width="164" height="24" rx="7"/>
           <text id="rotFalconChipText" x="0" y="4" text-anchor="middle">FALCON-1024 KEY #0</text>
         </g>
-        <g class="chip blue" id="rotEdChip" transform="translate(185,415)">
+        <g class="chip blue" id="rotEdChip" transform="translate(185,232)">
           <rect x="-82" y="-12" width="164" height="24" rx="7"/>
           <text id="rotEdChipText" x="0" y="4" text-anchor="middle">ED25519 KEY #0</text>
         </g>
 
+        <!-- Centre column: moved as one block by the portrait layout -->
+        <g id="rotCenter">
         <!-- Retired Stage Ghost Slot (top above gate) -->
         <g id="retiredSlot" transform="translate(520,122)" opacity="0">
           <rect class="gate-box retired" x="-165" y="-26" width="330" height="52" rx="10"/>
@@ -530,11 +536,15 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
           </g>
         </g>
 
+        </g>
+
         <!-- Next Stage Queued Slot (bottom below gate) -->
+        <g id="rotQueuedWrap">
         <g id="queuedSlot" transform="translate(520,508)">
           <rect class="gate-box queued" x="-165" y="-30" width="330" height="60" rx="10" fill="url(#hashShieldGrad)"/>
           <text id="queuedTitle" x="0" y="-6" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)">NEXT: STAGE 1 (A₁ · 7JQP...M9LA)</text>
           <text id="queuedSub" x="0" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">🔒 32-byte hash only · all 3 keys of stage 1 hidden</text>
+        </g>
         </g>
 
         <!-- Recipient Node (right) -->
@@ -600,6 +610,70 @@ const NS='http://www.w3.org/2000/svg';
 const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=id=>document.getElementById(id);
 const fx=$('fx');
+
+/* Layout. The stage is drawn for a 1200×640 landscape canvas. An embedding
+   page can ask for a narrow portrait canvas (?embed=1&layout=portrait) for
+   phones; it rearranges the spend-and-rotate layer and supports scenes 2 and
+   3. Coordinates that animations travel between live in LAY. */
+const PORTRAIT=(()=>{ const q=new URLSearchParams(location.search); return q.has('embed')&&q.get('layout')==='portrait'; })();
+/* The portrait centre column (retired slot and gate) moves by CX, CY_GATE;
+   the queued slot by CX, CY_QUEUED. */
+const CX=-300, CY_GATE=190, CY_QUEUED=176;
+const LAY=PORTRAIT?{
+  sig:{F:[562+CX,258+CY_GATE],E:[594+CX,286+CY_GATE],W:[604+CX,314+CY_GATE]},
+  chip:{W:[78,262],F:[220,262],E:[362,262]},
+  recv:[325,160], recvMark:[414,124],
+  payFrom:[130,226], payTo:[325,208],
+  rekey:[520+CX,310+CY_GATE], stamp:[520+CX,122+CY_GATE],
+}:{
+  sig:{F:[562,258],E:[594,286],W:[604,314]},
+  chip:{W:[185,170],F:[185,201],E:[185,232]},
+  recv:[995,310], recvMark:[995,252],
+  payFrom:[710,310], payTo:[890,310],
+  rekey:[520,310], stamp:[520,122],
+};
+function applyPortraitLayout(){
+  const W=440, H=784;
+  const set=(id,attrs)=>{ const e=$(id); for(const k in attrs) e.setAttribute(k,attrs[k]); };
+  $('stage').setAttribute('viewBox',`0 0 ${W} ${H}`);
+  document.querySelectorAll('#stage > rect.stage-bg').forEach(r=>{ r.setAttribute('width',W); r.setAttribute('height',H); });
+  /* Auth chain as a 2×2 grid */
+  set('conveyorBar',{transform:'translate(220,52)'});
+  set('conveyorRect',{x:-210,y:-46,width:420,height:96});
+  set('conveyorLabel',{x:0,y:-26,'text-anchor':'middle'});
+  [[-105,-2],[105,-2],[-105,30],[105,30]].forEach(([x,y],i)=>set('pillStage'+i,{transform:`translate(${x},${y})`}));
+  set('conveyorArrow0',{x:0,y:2}); set('conveyorArrow2',{x:0,y:34});
+  ['conveyorArrow1','conveyorMore'].forEach(id=>$(id).style.display='none');
+  /* Account and recipient side by side */
+  const narrow=id=>{ const g=$(id); g.querySelector('rect.node-box').setAttribute('x',-100); g.querySelector('rect.node-box').setAttribute('width',200); g.querySelector('circle.node-dot').setAttribute('cx',-80); };
+  set('rotAccount',{transform:'translate(115,160)'}); narrow('rotAccount');
+  set('rotRecv',{transform:`translate(${LAY.recv[0]},${LAY.recv[1]})`}); narrow('rotRecv');
+  /* The three keys in a row under them */
+  [['rotWotsChip','W'],['rotFalconChip','F'],['rotEdChip','E']].forEach(([id,k])=>{
+    set(id,{transform:`translate(${LAY.chip[k][0]},${LAY.chip[k][1]})`});
+    const r=$(id).querySelector('rect'); r.setAttribute('x',-62); r.setAttribute('width',124);
+  });
+  /* Stage program, retired and queued slots stacked below */
+  set('rotCenter',{transform:`translate(${CX},${CY_GATE})`});
+  set('rotQueuedWrap',{transform:`translate(${CX},${CY_QUEUED})`});
+  ['rotKeyGroup','rotAttach','rotFlinkMain','rotFlinkBad','rotBarrier','rotAttacker'].forEach(id=>$(id).style.display='none');
+  set('rotFootnote',{x:220,y:752});
+}
+/* The footnote wraps onto two lines in the portrait layout. */
+function setFootnote(text){
+  const f=$('rotFootnote');
+  if(!PORTRAIT){ f.textContent=text; return; }
+  const mid=text.length/2;
+  let cut=-1;
+  for(let i=0;i<text.length;i++) if(text[i]===' ' && (cut<0 || Math.abs(i-mid)<Math.abs(cut-mid))) cut=i;
+  f.textContent='';
+  [text.slice(0,cut),text.slice(cut+1)].forEach((line,i)=>{
+    const t=document.createElementNS(NS,'tspan');
+    t.setAttribute('x','220'); t.setAttribute('dy',i?'18':'0'); t.textContent=line;
+    f.appendChild(t);
+  });
+}
+if(PORTRAIT) applyPortraitLayout();
 
 const STAGE_ADDRS=['R4XK...Q3TZ','7JQP...M9LA','X3VN...K4WP','B8MC...T2ZR','Q5LD...W9HX'];
 
@@ -708,12 +782,12 @@ function makeSigToken(label,x,y,color){
 }
 
 /* Signature tokens land inside the gate's check rows, between the brackets. */
-const SIG_POS={F:[562,258],E:[594,286],W:[604,314]};
+const SIG_POS=LAY.sig;
 function stageSignals(color){
   return [
-    {label:'sig_F',from:[185,205],to:SIG_POS.F,color:color||'#f0b45c'},
-    {label:'sig_E',from:[185,415],to:SIG_POS.E,color:color||'#6eb5ff'},
-    {label:'sig_W',from:[185,173],to:SIG_POS.W,color:color||'#b48cff'},
+    {label:'sig_F',from:LAY.chip.F,to:SIG_POS.F,color:color||'#f0b45c'},
+    {label:'sig_E',from:LAY.chip.E,to:SIG_POS.E,color:color||'#6eb5ff'},
+    {label:'sig_W',from:LAY.chip.W,to:SIG_POS.W,color:color||'#b48cff'},
   ];
 }
 async function slideSignals(specs,dur){
@@ -768,9 +842,11 @@ function subNum(n){
 function configureRotatingStage(n, showRetired){
   const next=n+1;
   $('rotAuthSub').textContent=`auth-addr: A${subNum(n)} (Stage ${n})`;
-  $('rotFalconChipText').textContent=`FALCON-1024 KEY #${n}`;
-  $('rotEdChipText').textContent=`ED25519 KEY #${n}`;
-  $('rotWotsChipText').textContent=`WOTS-W16 KEY #${n}`;
+  const key=PORTRAIT?'':' KEY';
+  $('rotFalconChipText').textContent=`FALCON-1024${key} #${n}`;
+  $('rotEdChipText').textContent=`ED25519${key} #${n}`;
+  $('rotWotsChipText').textContent=`WOTS-W16${key} #${n}`;
+  $('rotKeyGroupLabel').textContent=`STAGE ${n} KEYS`;
   $('rotGateTitle').textContent=`STAGE ${n} LOGICSIG (A${subNum(n)}) · TEAL V13`;
   $('rotStageBadge').setAttribute('class','chip teal');
   $('rotStageBadgeText').textContent='🔒 HASH-SHIELDED AT REST';
@@ -823,7 +899,7 @@ function revealGate(dur){
 /* Animate atomic rotation from stage n to stage n+1 */
 async function animateStageRotation(n){
   const next=n+1, afterNext=n+2;
-  const badge=makeBubble(`REKEY → A${subNum(next)}`,520,310,'amber');
+  const badge=makeBubble(`REKEY → A${subNum(next)}`,LAY.rekey[0],LAY.rekey[1],'amber');
   if(!await fadeTo(badge,1,280)){ badge.remove(); return false; }
   if(!await sleep(320)){ badge.remove(); return false; }
   let swapped=false;
@@ -990,12 +1066,12 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   $('rotAttacker').setAttribute('opacity','0');
   $('rotFlinkBad').setAttribute('opacity','0');
   $('rotBarrier').setAttribute('opacity','0');
-  $('rotRecv').setAttribute('transform','translate(995,310)');
+  $('rotRecv').setAttribute('transform',`translate(${LAY.recv[0]},${LAY.recv[1]})`);
   $('rotFlinkMain').setAttribute('y2','310');
 
   if(!await sleep(450)) return false;
   flash('rotAccount');
-  const bub=makeBubble(`${amountLabel} + Rekey→A${subNum(next)}`,710,310);
+  const bub=makeBubble(`${amountLabel} + Rekey→A${subNum(next)}`,LAY.payFrom[0],LAY.payFrom[1]);
   if(!await fadeTo(bub,1,380)){ bub.remove(); return false; }
   bub.classList.add('staged');
 
@@ -1032,14 +1108,14 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   bub.classList.remove('staged');
 
   /* Step 3: Payment settles AND stage rotates atomically */
-  const moveP=moveBubble(bub,710,310,890,310,1750);
+  const moveP=moveBubble(bub,LAY.payFrom[0],LAY.payFrom[1],LAY.payTo[0],LAY.payTo[1],1750);
   const rotP=animateStageRotation(stageIdx);
   const [ok1,ok2]=await Promise.all([moveP,rotP]);
   bub.remove();
   if(!ok1 || !ok2) return false;
 
   flash('rotRecv');
-  mark(995,252,true);
+  mark(LAY.recvMark[0],LAY.recvMark[1],true);
   return true;
 }
 
@@ -1047,10 +1123,10 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
 async function loopScene2(){
   const t=token;
   showLayer('layerRotating');
-  $('rotFootnote').textContent='THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)';
+  setFootnote('THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)');
   while(t.alive){
     if(!await runSingleSpendCycle(0, 'pay 500')) return;
-    stamp(520,122,'A₀ RETIRED · A₁ NOW ACTIVE & HASH-SHIELDED',true);
+    stamp(LAY.stamp[0],LAY.stamp[1],PORTRAIT?'A₀ RETIRED · A₁ LIVE':'A₀ RETIRED · A₁ NOW ACTIVE & HASH-SHIELDED',true);
     if(!await sleep(3600)) return;
   }
 }
@@ -1059,7 +1135,7 @@ async function loopScene2(){
 async function loopScene3(){
   const t=token;
   showLayer('layerRotating');
-  $('rotFootnote').textContent='STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED';
+  setFootnote('STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED');
   const labels=['pay 250','pay 800','pay 1,200'];
   while(t.alive){
     for(let s=0;s<3;s++){
@@ -1075,7 +1151,7 @@ async function loopScene3(){
 async function loopScene4(){
   const t=token;
   showLayer('layerRotating');
-  $('rotFootnote').textContent='RETIRED KEYS CANNOT AUTHORIZE ACCOUNT A · IN FLIGHT, A FORGER MUST BREAK ALL THREE';
+  setFootnote('RETIRED KEYS CANNOT AUTHORIZE ACCOUNT A · IN FLIGHT, A FORGER MUST BREAK ALL THREE');
 
   while(t.alive){
     /* Scenario A: Attacker tries to spend using revealed/retired Stage 0 keys while Account is at Stage 1 */
@@ -1174,23 +1250,23 @@ function staticFrame(n){
     showLayer('layerDerivation');
   } else if(n===2){
     showLayer('layerRotating');
-    $('rotFootnote').textContent='THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)';
+    setFootnote('THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)');
     configureRotatingStage(1, true);
     ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
-    mark(995,252,true);
+    mark(LAY.recvMark[0],LAY.recvMark[1],true);
   } else if(n===3){
     showLayer('layerRotating');
-    $('rotFootnote').textContent='STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED';
+    setFootnote('STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED');
     configureRotatingStage(2, true);
     ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
-    mark(995,252,true);
+    mark(LAY.recvMark[0],LAY.recvMark[1],true);
   } else {
     showLayer('layerRotating');
-    $('rotFootnote').textContent='RETIRED KEYS CANNOT AUTHORIZE ACCOUNT A · IN FLIGHT, A FORGER MUST BREAK ALL THREE';
+    setFootnote('RETIRED KEYS CANNOT AUTHORIZE ACCOUNT A · IN FLIGHT, A FORGER MUST BREAK ALL THREE');
     configureRotatingStage(1, true);
     $('rotRecv').setAttribute('transform','translate(995,220)');
     $('rotFlinkMain').setAttribute('y2','220');
