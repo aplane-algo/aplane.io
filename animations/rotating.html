@@ -524,8 +524,8 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
           </g>
           <!-- Shown instead of the checks while the stage is hash-shielded -->
           <g id="rotGateSealed">
-            <text x="520" y="318" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)" letter-spacing=".12em">PROGRAM NOT ON CHAIN</text>
-            <text id="rotGateSealedSub" x="520" y="342" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">only its 32-byte hash, A₀, exists</text>
+            <text x="520" y="318" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)" letter-spacing=".12em">SIG PROGRAM NOT YET VISIBLE</text>
+            <text id="rotGateSealedSub" x="520" y="342" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">only the program's 32-byte hash, A₀, exists</text>
             <text id="rotGateSealedSub2" x="520" y="362" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">keys and checks appear when stage 0 signs</text>
           </g>
         </g>
@@ -807,7 +807,7 @@ function sealGate(n){
   $('rotGateItems').setAttribute('opacity','0');
   $('rotGateResultWrap').setAttribute('opacity','0');
   $('rotGateSealed').setAttribute('opacity','1');
-  $('rotGateSealedSub').textContent=`only its 32-byte hash, A${subNum(n)}, exists`;
+  $('rotGateSealedSub').textContent=`only the program's 32-byte hash, A${subNum(n)}, exists`;
   $('rotGateSealedSub2').textContent=`keys and checks appear when stage ${n} signs`;
 }
 function revealGate(dur){
