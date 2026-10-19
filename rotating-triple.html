@@ -59,7 +59,7 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 </head>
 <body>
 <article>
-  <a class="back" href="../index.html">← aplane.io</a>
+  <a class="back" href="index.html">← aplane.io</a>
   <h1>A better bunker</h1>
   <p class="dek">An Algorand account that keeps its keys out of sight, and swaps them out on every transaction.</p>
 
@@ -118,7 +118,7 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   var narrow=matchMedia('(max-width: 640px)');
   function load(){
     stage.classList.toggle('portrait',narrow.matches);
-    frame.src='../animations/rotating.html?embed=1&scene=2'+(narrow.matches?'&layout=portrait':'')+'&r='+Date.now();
+    frame.src='animations/rotating.html?embed=1&scene=2'+(narrow.matches?'&layout=portrait':'')+'&r='+Date.now();
   }
   narrow.addEventListener('change',load);
   document.getElementById('replay').addEventListener('click',load);
