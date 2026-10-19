@@ -465,74 +465,50 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
 
         <!-- Active Stage Gate (center) -->
         <g id="activeStageGate" transform="translate(0,0)">
-          <rect class="gate-box" id="rotGateBox" x="355" y="176" width="330" height="268" rx="12"/>
-          <text class="gate-title" id="rotGateTitle" x="374" y="202">STAGE 0 LOGICSIG (A₀) · TEAL V13</text>
+          <rect class="gate-box" id="rotGateBox" x="355" y="200" width="330" height="214" rx="12"/>
+          <text class="gate-title" id="rotGateTitle" x="374" y="226">STAGE 0 LOGICSIG (A₀) · TEAL V13</text>
           <g class="chip teal" id="rotStageBadge">
-            <rect id="rotStageBadgeRect" x="372" y="214" width="262" height="22" rx="6"/>
-            <text id="rotStageBadgeText" x="503" y="229" text-anchor="middle">🔒 HASH-SHIELDED AT REST</text>
+            <rect id="rotStageBadgeRect" x="372" y="238" width="262" height="22" rx="6"/>
+            <text id="rotStageBadgeText" x="503" y="253" text-anchor="middle">🔒 HASH-SHIELDED AT REST</text>
           </g>
 
           <!-- The program's checks: hidden while the stage is hash-shielded -->
           <g id="rotGateItems" opacity="0">
           <!-- Check 1: Falcon-1024 (lattice) -->
           <g class="chk" id="rotChk1">
-            <circle cx="383" cy="258" r="7"/>
-            <path class="tick" d="M379.5 258 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 253.5 L387.5 262.5 M387.5 253.5 L378.5 262.5"/>
-            <text class="chk-text" x="400" y="262">falcon_verify (TxID, </text>
-            <text class="chk-text" x="596" y="262">)</text>
+            <circle cx="383" cy="286" r="7"/>
+            <path class="tick" d="M379.5 286 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 281.5 L387.5 290.5 M387.5 281.5 L378.5 290.5"/>
+            <text class="chk-text" x="400" y="290">falcon_verify (TxID, </text>
+            <text class="chk-text" x="596" y="290">)</text>
           </g>
 
           <!-- Check 2: Ed25519 (elliptic curve) -->
           <g class="chk" id="rotChk2">
-            <circle cx="383" cy="286" r="7"/>
-            <path class="tick" d="M379.5 286 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 281.5 L387.5 290.5 M387.5 281.5 L378.5 290.5"/>
-            <text class="chk-text" x="400" y="290">ed25519verify_bare (TxID, </text>
-            <text class="chk-text" x="628" y="290">)</text>
+            <circle cx="383" cy="318" r="7"/>
+            <path class="tick" d="M379.5 318 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 313.5 L387.5 322.5 M387.5 313.5 L378.5 322.5"/>
+            <text class="chk-text" x="400" y="322">ed25519verify_bare (TxID, </text>
+            <text class="chk-text" x="628" y="322">)</text>
           </g>
 
           <!-- Check W: WOTS-w16 (hash-based, 67 SHA-256 chains) -->
           <g class="chk" id="rotChkW">
-            <circle cx="383" cy="314" r="7"/>
-            <path class="tick" d="M379.5 314 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 309.5 L387.5 318.5 M387.5 309.5 L378.5 318.5"/>
-            <text class="chk-text" x="400" y="318">wots: sha256 chains (TxID, </text>
-            <text class="chk-text" x="636" y="318">)</text>
-          </g>
-
-          <!-- Check 3: rekey away from the account (program) -->
-          <g class="chk" id="rotChk3">
-            <circle cx="383" cy="342" r="7"/>
-            <path class="tick" d="M379.5 342 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 337.5 L387.5 346.5 M387.5 337.5 L378.5 346.5"/>
-            <text class="chk-text" id="rotChk3Text" x="400" y="346">RekeyTo ≠ zero · ≠ account</text>
-          </g>
-
-          <!-- Check 4: no close-out, window <= 100 rounds (program) -->
-          <g class="chk" id="rotChk4">
-            <circle cx="383" cy="370" r="7"/>
-            <path class="tick" d="M379.5 370 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 365.5 L387.5 374.5 M387.5 365.5 L378.5 374.5"/>
-            <text class="chk-text" id="rotChk4Text" x="400" y="374">no close-out · Δvalid ≤ 100 rds</text>
-          </g>
-
-          <!-- Check 5: signer picks the next stage and runs the open test -->
-          <g class="chk" id="rotChk5">
-            <circle cx="383" cy="398" r="7"/>
-            <path class="tick" d="M379.5 398 l2.6 2.9 l4.8 -5.6"/>
-            <path class="cross" d="M378.5 393.5 L387.5 402.5 M387.5 393.5 L378.5 402.5"/>
-            <text class="chk-text" id="rotChk5Text" x="400" y="402">signer: target A₁ · open test ok</text>
+            <circle cx="383" cy="350" r="7"/>
+            <path class="tick" d="M379.5 350 l2.6 2.9 l4.8 -5.6"/>
+            <path class="cross" d="M378.5 345.5 L387.5 354.5 M387.5 345.5 L378.5 354.5"/>
+            <text class="chk-text" x="400" y="354">wots: sha256 chains (TxID, </text>
+            <text class="chk-text" x="636" y="354">)</text>
           </g>
           </g>
           <g id="rotGateResultWrap" opacity="0">
-            <text class="gate-result" id="rotGateResult" x="374" y="430">→ spend + rotate to A₁ authorized</text>
+            <text class="gate-result" id="rotGateResult" x="374" y="390">→ spend + rotate to A₁ authorized</text>
           </g>
           <!-- Shown instead of the checks while the stage is hash-shielded -->
           <g id="rotGateSealed">
-            <text x="520" y="318" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)" letter-spacing=".12em">SIG PROGRAM NOT YET VISIBLE</text>
-            <text id="rotGateSealedSub" x="520" y="342" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">only the program's 32-byte hash, A₀, exists</text>
-            <text id="rotGateSealedSub2" x="520" y="362" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">keys and checks appear when stage 0 signs</text>
+            <text x="520" y="314" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)" letter-spacing=".12em">SIG PROGRAM NOT YET VISIBLE</text>
+            <text id="rotGateSealedSub" x="520" y="338" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">only the program's 32-byte hash, A₀, exists</text>
+            <text id="rotGateSealedSub2" x="520" y="358" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">keys and checks appear when stage 0 signs</text>
           </g>
         </g>
 
@@ -620,13 +596,13 @@ const PORTRAIT=(()=>{ const q=new URLSearchParams(location.search); return q.has
    the queued slot by CX, CY_QUEUED. */
 const CX=-300, CY_GATE=190, CY_QUEUED=176;
 const LAY=PORTRAIT?{
-  sig:{F:[562+CX,258+CY_GATE],E:[594+CX,286+CY_GATE],W:[604+CX,314+CY_GATE]},
+  sig:{F:[562+CX,286+CY_GATE],E:[594+CX,318+CY_GATE],W:[604+CX,350+CY_GATE]},
   chip:{W:[78,262],F:[220,262],E:[362,262]},
   recv:[325,160], recvMark:[414,124],
   payFrom:[130,226], payTo:[325,208],
   rekey:[520+CX,310+CY_GATE], stamp:[520+CX,122+CY_GATE],
 }:{
-  sig:{F:[562,258],E:[594,286],W:[604,314]},
+  sig:{F:[562,286],E:[594,318],W:[604,350]},
   chip:{W:[185,170],F:[185,201],E:[185,232]},
   recv:[995,310], recvMark:[995,252],
   payFrom:[710,310], payTo:[890,310],
@@ -850,12 +826,9 @@ function configureRotatingStage(n, showRetired){
   $('rotGateTitle').textContent=`STAGE ${n} LOGICSIG (A${subNum(n)}) · TEAL V13`;
   $('rotStageBadge').setAttribute('class','chip teal');
   $('rotStageBadgeText').textContent='🔒 HASH-SHIELDED AT REST';
-  $('rotChk3Text').textContent='RekeyTo ≠ zero · ≠ account';
-  $('rotChk4Text').textContent='no close-out · Δvalid ≤ 100 rds';
-  $('rotChk5Text').textContent=`signer: target A${subNum(next)} · open test ok`;
   $('rotGateResult').textContent=`→ spend + rotate to A${subNum(next)} authorized`;
   $('rotGateResult').classList.remove('on','fail');
-  ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.remove('done','fail'));
+  ['rotChk1','rotChk2','rotChkW'].forEach(id=>$(id).classList.remove('done','fail'));
 
   $('queuedTitle').textContent=`NEXT: STAGE ${next} (A${subNum(next)} · ${STAGE_ADDRS[next]||'DERIVED'})`;
   $('queuedSub').textContent=`🔒 32-byte hash only · all 3 keys of stage ${next} hidden`;
@@ -1074,13 +1047,9 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   const bub=makeBubble(`${amountLabel} + Rekey→A${subNum(next)}`,LAY.payFrom[0],LAY.payFrom[1]);
   if(!await fadeTo(bub,1,380)){ bub.remove(); return false; }
   bub.classList.add('staged');
-
-  /* Step 1: Signer checks Stage n+1 opens before releasing Stage n sig */
-  if(!await sleep(550)){ bub.remove(); return false; }
-  $('rotChk5').classList.add('done');
   if(!await sleep(650)){ bub.remove(); return false; }
 
-  /* Step 2: Ed25519, Falcon-1024 and WOTS signatures travel into the TEAL gate */
+  /* Ed25519, Falcon-1024 and WOTS signatures travel into the TEAL gate */
   updateConveyorPills(stageIdx, true);
   $('rotStageBadge').setAttribute('class','chip amber');
   $('rotStageBadgeText').textContent=`SIGNING: STAGE ${stageIdx} KEYS REVEALED IN TX`;
@@ -1096,10 +1065,6 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   $('rotChk2').classList.add('done');
   $('rotChkW').classList.add('done');
   if(!await sleep(760)){ drop(); bub.remove(); return false; }
-
-  $('rotChk3').classList.add('done');
-  $('rotChk4').classList.add('done');
-  if(!await sleep(720)){ drop(); bub.remove(); return false; }
 
   $('rotGateResult').classList.add('on');
   if(!await sleep(680)){ drop(); bub.remove(); return false; }
@@ -1170,7 +1135,7 @@ async function loopScene4(){
     if(!await fadeTo(badBub,1,380)){ badBub.remove(); return; }
     badBub.classList.add('staged');
 
-    const ballsA=await slideSignals(stageSignals('#f26b6b').map((sp,i)=>({...sp,from:[520,122],to:[645,238+30*i]})),1150);
+    const ballsA=await slideSignals(stageSignals('#f26b6b').map((sp,i)=>({...sp,from:[520,122],to:[645,260+30*i]})),1150);
     if(!ballsA){ badBub.remove(); return; }
     const dropA=()=>ballsA.forEach(b=>b.remove());
 
@@ -1205,11 +1170,10 @@ async function loopScene4(){
     if(!await fadeTo(okBub,1,380)){ okBub.remove(); return; }
     okBub.classList.add('staged');
     if(!await sleep(450)){ okBub.remove(); return; }
-    $('rotChk5').classList.add('done');
 
     const revealB=revealGate(700);
-  const ballsB=await slideSignals(stageSignals(),1150);
-  await revealB;
+    const ballsB=await slideSignals(stageSignals(),1150);
+    await revealB;
     if(!ballsB){ okBub.remove(); return; }
     const dropB=()=>ballsB.forEach(b=>b.remove());
     if(!await sleep(400)){ dropB(); okBub.remove(); return; }
@@ -1217,9 +1181,6 @@ async function loopScene4(){
     $('rotChk2').classList.add('done');
     $('rotChkW').classList.add('done');
     if(!await sleep(680)){ dropB(); okBub.remove(); return; }
-    $('rotChk3').classList.add('done');
-    $('rotChk4').classList.add('done');
-    if(!await sleep(650)){ dropB(); okBub.remove(); return; }
     $('rotGateResult').classList.add('on');
     if(!await sleep(680)){ dropB(); okBub.remove(); return; }
     dropB();
@@ -1252,7 +1213,7 @@ function staticFrame(n){
     showLayer('layerRotating');
     setFootnote('THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)');
     configureRotatingStage(1, true);
-    ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
+    ['rotChk1','rotChk2','rotChkW'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
     mark(LAY.recvMark[0],LAY.recvMark[1],true);
@@ -1260,7 +1221,7 @@ function staticFrame(n){
     showLayer('layerRotating');
     setFootnote('STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED');
     configureRotatingStage(2, true);
-    ['rotChk1','rotChk2','rotChkW','rotChk3','rotChk4','rotChk5'].forEach(id=>$(id).classList.add('done'));
+    ['rotChk1','rotChk2','rotChkW'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
     mark(LAY.recvMark[0],LAY.recvMark[1],true);
