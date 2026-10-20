@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A Better Bunker</title>
-<meta name="description" content="A mainnet Algorand account protected by three keys from three unrelated families, replaced on every transaction.">
+<meta name="description" content="An Algorand account protected by Ed25519, Falcon-1024 and XMSS signatures, with a new authorizing stage on every confirmed spend.">
 <style>
 :root{
   --bg:#f6f7f2; --ink:#111111; --muted:#5b5f66; --border:#d7dacd; --teal:#0a7d6b; --code-bg:#eceee6;
@@ -34,7 +34,7 @@ ol.points p{margin:0;text-wrap:pretty}
 .keys{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .key{font:600 13px var(--mono);padding:3px 9px;border-radius:6px;border:1.5px solid;background:#fff}
 .key.fa{color:var(--amber);border-color:var(--amber)}
-.key.wo{color:var(--violet);border-color:var(--violet)}
+.key.xm{color:var(--violet);border-color:var(--violet)}
 .key.ed{color:var(--blue);border-color:var(--blue)}
 
 
@@ -61,7 +61,11 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 <article>
   <a class="back" href="index.html">← aplane.io</a>
   <h1>Rotating Triple-Sig: A better bunker?</h1>
-  <p class="dek">An Algorand account type that keeps its three public keys out of sight until use and then swaps them out for fresh ones on every transaction.</p>
+  <p class="dek">
+
+  An Algorand account type protected by Ed25519, Falcon-1024 and XMSS signatures. Each confirmed spend rotates authority to fresh Ed25519 and Falcon keys and a new range of XMSS leaves.
+
+  </p>
 
 </article>
 
@@ -75,7 +79,7 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
     <span style="--c:#f26b6b">exposed key / rejected</span>
     <span style="--c:#6eb5ff">Ed25519 (elliptic curve)</span>
     <span style="--c:#f0b45c">Falcon-1024 (lattice)</span>
-    <span style="--c:#b48cff">WOTS (hash-based)</span>
+    <span style="--c:#b48cff">XMSS (hash-based)</span>
   </div>
 </section>
 
@@ -90,23 +94,28 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
     <li>
       <h2>Three keys on every transaction, not one</h2>
       <p>Each of its transactions is protected by three keys from three unrelated families of cryptography. All three must sign. Even if two of those schemes were broken, the third would still protect the account.</p>
-      <div class="keys"><span class="key fa">Falcon-1024 · lattice</span><span class="key wo">WOTS · hash-based</span><span class="key ed">Ed25519 · elliptic curve</span></div>
+      <div class="keys"><span class="key fa">Falcon-1024 · lattice</span><span class="key xm">XMSS · hash-based</span><span class="key ed">Ed25519 · elliptic curve</span></div>
     </li>
     <li>
       <h2>A new key set on every transaction</h2>
-      <p>The three-key set is replaced on every transaction by a rekey, built into the transaction itself. No two transactions use the same set of keys. The account’s address, balance and assets never move.</p>
+      <p>Each confirmed spend rekeys the account to a new stage with fresh Ed25519 and Falcon-1024 keys and its own 64 XMSS leaves. One XMSS tree serves 1,024 stages, so its public root is shared. The account’s address, balance and assets never move.</p>
     </li>
     <li>
       <h2>Invisible at rest</h2>
-      <p>Even after a key set has been rotated in, its public keys stay off chain until it signs. All the chain holds is a 32-byte hash. There is nothing for an attacker to target.</p>
+      <p>The next stage’s program and its fresh Ed25519 and Falcon public keys stay off chain until it signs. Its authorizer address is a 32-byte hash. The shared XMSS root is already public once an earlier stage in that tree has signed.</p>
     </li>
     <li>
       <h2>Visible only as it is retired</h2>
-      <p>The live key set becomes visible on chain only when a transaction is submitted. Once that transaction is final, usually within about 3 seconds, the key set is obsolete: the same transaction has already rotated in a new live set that nobody has seen.</p>
+      <p>The live stage’s program becomes visible when a transaction is submitted. Once that transaction is final, usually within about 3 seconds, the stage is retired: the same transaction has rotated in fresh Ed25519 and Falcon keys and a new XMSS leaf range. The next stage rejects signatures using the retired range.</p>
     </li>
     <li>
-      <h2>Three breaks, one round, and a race</h2>
-      <p>When a transaction is submitted and its public keys are exposed, an attacker would need to break all three keys within the roughly 3-second round in which they are still live, <em>and</em> get a forged transaction finalized before the real one.</p>
+      <h2>Three signature checks and a race</h2>
+      <p>A forged spend must pass all three signature checks and finalize before the real spend rotates authority away. Fresh Ed25519 and Falcon keys are exposed at broadcast; the shared XMSS root may have been public longer. Each stage can sign up to 64 distinct attempts on separate leaves without reusing a one-time key. Reusing a leaf weakens the XMSS protection until rotation, so the signer tracks attempts in release memory and its audit log.</p>
+    </li>
+    <li>
+	<h2>No stateful smart contract required</h2>
+	<p>Authorization uses Algorand's stateless Logic Signatures. Each keyset verification program is sent just-in-time with the transaction, without deploying a stateful application. Fewer moving parts to implement and audit.
+
     </li>
   </ol>
 

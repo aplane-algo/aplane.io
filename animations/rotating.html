@@ -181,7 +181,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
 
 <header class="wrap">
   <h1>Rotating Triple Hybrid Accounts</h1>
-  <p class="sub">A fixed Algorand account whose authorizing LogicSig rotates on every spend. Each stage’s keys stay hidden behind a hash until it signs, and that same spend hands control to a fresh, never-seen stage—whose signatures must pass Ed25519, Falcon-1024 and hash-based WOTS checks at once.</p>
+  <p class="sub">A fixed Algorand account whose authorizing LogicSig rotates on every confirmed spend. Each stage has fresh Ed25519 and Falcon-1024 keys and its own XMSS leaf range. All three signatures must pass; the XMSS public root is shared across 1,024 stages.</p>
 </header>
 
 <main class="wrap">
@@ -305,7 +305,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
             </g>
             <g class="chip violet" transform="translate(250,-14)">
               <rect x="-43" y="-11" width="86" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">WOTS-w16 #0</text>
+              <text x="0" y="4" text-anchor="middle">XMSS #0</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -328,7 +328,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
             </g>
             <g class="chip violet" transform="translate(250,-14)">
               <rect x="-43" y="-11" width="86" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">WOTS-w16 #1</text>
+              <text x="0" y="4" text-anchor="middle">XMSS #1</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -351,7 +351,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
             </g>
             <g class="chip violet" transform="translate(250,-14)">
               <rect x="-43" y="-11" width="86" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">WOTS-w16 #2</text>
+              <text x="0" y="4" text-anchor="middle">XMSS #2</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -374,7 +374,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
             </g>
             <g class="chip violet" transform="translate(250,-14)">
               <rect x="-43" y="-11" width="86" height="22" rx="6"/>
-              <text x="0" y="4" text-anchor="middle">WOTS-w16 #i</text>
+              <text x="0" y="4" text-anchor="middle">XMSS #i</text>
             </g>
             <g class="chip teal" transform="translate(148,18)">
               <rect x="-158" y="-11" width="316" height="22" rx="6"/>
@@ -384,7 +384,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
         </g>
 
         <text class="stage-footnote" x="600" y="598" text-anchor="middle">
-          ONE 64B SEED EXPANDS TO EVERY STAGE · EACH STAGE EMBEDS FRESH ED25519 + FALCON + WOTS KEYS
+          ONE 64B SEED · FRESH ED25519 + FALCON KEYS AND A DISTINCT XMSS LEAF RANGE PER STAGE
         </text>
       </g>
 
@@ -441,9 +441,9 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
           <rect x="93" y="134" width="184" height="118" rx="10" fill="rgba(14,21,38,.6)" stroke="#2b3b5e" stroke-width="1" stroke-dasharray="4 3"/>
           <text id="rotKeyGroupLabel" x="185" y="150" text-anchor="middle" font-family="var(--mono)" font-size="9.5" font-weight="600" fill="var(--muted)" letter-spacing=".12em">STAGE 0 KEYS</text>
         </g>
-        <g class="chip violet" id="rotWotsChip" transform="translate(185,170)">
+        <g class="chip violet" id="rotXmssChip" transform="translate(185,170)">
           <rect x="-82" y="-12" width="164" height="24" rx="7"/>
-          <text id="rotWotsChipText" x="0" y="4" text-anchor="middle">WOTS-W16 KEY #0</text>
+          <text id="rotXmssChipText" x="0" y="4" text-anchor="middle">XMSS LEAVES #0</text>
         </g>
         <g class="chip amber" id="rotFalconChip" transform="translate(185,201)">
           <rect x="-82" y="-12" width="164" height="24" rx="7"/>
@@ -492,12 +492,12 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
             <text class="chk-text" x="628" y="322">)</text>
           </g>
 
-          <!-- Check W: WOTS-w16 (hash-based, 67 SHA-256 chains) -->
-          <g class="chk" id="rotChkW">
+          <!-- Check X: XMSS (SHA-256 chains, L-tree and Merkle authentication path) -->
+          <g class="chk" id="rotChkX">
             <circle cx="383" cy="350" r="7"/>
             <path class="tick" d="M379.5 350 l2.6 2.9 l4.8 -5.6"/>
             <path class="cross" d="M378.5 345.5 L387.5 354.5 M387.5 345.5 L378.5 354.5"/>
-            <text class="chk-text" x="400" y="354">wots: sha256 chains (TxID, </text>
+            <text class="chk-text" x="400" y="354">xmss: verify proof (TxID, </text>
             <text class="chk-text" x="636" y="354">)</text>
           </g>
           </g>
@@ -519,7 +519,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
         <g id="queuedSlot" transform="translate(520,508)">
           <rect class="gate-box queued" x="-165" y="-30" width="330" height="60" rx="10" fill="url(#hashShieldGrad)"/>
           <text id="queuedTitle" x="0" y="-6" text-anchor="middle" font-family="var(--mono)" font-size="11.5" font-weight="600" fill="var(--teal)">NEXT: STAGE 1 (A₁ · 7JQP...M9LA)</text>
-          <text id="queuedSub" x="0" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">🔒 32-byte hash only · all 3 keys of stage 1 hidden</text>
+          <text id="queuedSub" x="0" y="14" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">🔒 fresh Ed/Falcon keys · new XMSS leaf range</text>
         </g>
         </g>
 
@@ -567,7 +567,7 @@ html.embed .stage-frame{margin:0;border:0;border-radius:0;box-shadow:none}
     <div class="leg-item"><span class="leg-dot teal"></span>hash-shielded stage / verified spend</div>
     <div class="leg-item"><span class="leg-dot blue"></span>Ed25519 signature (elliptic curve)</div>
     <div class="leg-item"><span class="leg-dot amber"></span>Falcon-1024 signature (lattice, PQ)</div>
-    <div class="leg-item"><span class="leg-dot violet"></span>WOTS-w16 signature (hash-based, PQ)</div>
+    <div class="leg-item"><span class="leg-dot violet"></span>XMSS signature (hash-based, PQ)</div>
     <div class="leg-item"><span class="leg-dot red"></span>exposed or rejected replay</div>
   </div>
 
@@ -596,14 +596,14 @@ const PORTRAIT=(()=>{ const q=new URLSearchParams(location.search); return q.has
    the queued slot by CX, CY_QUEUED. */
 const CX=-300, CY_GATE=190, CY_QUEUED=176;
 const LAY=PORTRAIT?{
-  sig:{F:[562+CX,286+CY_GATE],E:[594+CX,318+CY_GATE],W:[604+CX,350+CY_GATE]},
-  chip:{W:[78,262],F:[220,262],E:[362,262]},
+  sig:{F:[562+CX,286+CY_GATE],E:[594+CX,318+CY_GATE],X:[604+CX,350+CY_GATE]},
+  chip:{X:[78,262],F:[220,262],E:[362,262]},
   recv:[325,160], recvMark:[414,124],
   payFrom:[130,226], payTo:[325,208],
   rekey:[520+CX,310+CY_GATE], stamp:[520+CX,122+CY_GATE],
 }:{
-  sig:{F:[562,286],E:[594,318],W:[604,350]},
-  chip:{W:[185,170],F:[185,201],E:[185,232]},
+  sig:{F:[562,286],E:[594,318],X:[604,350]},
+  chip:{X:[185,170],F:[185,201],E:[185,232]},
   recv:[995,310], recvMark:[995,252],
   payFrom:[710,310], payTo:[890,310],
   rekey:[520,310], stamp:[520,122],
@@ -625,7 +625,7 @@ function applyPortraitLayout(){
   set('rotAccount',{transform:'translate(115,160)'}); narrow('rotAccount');
   set('rotRecv',{transform:`translate(${LAY.recv[0]},${LAY.recv[1]})`}); narrow('rotRecv');
   /* The three keys in a row under them */
-  [['rotWotsChip','W'],['rotFalconChip','F'],['rotEdChip','E']].forEach(([id,k])=>{
+  [['rotXmssChip','X'],['rotFalconChip','F'],['rotEdChip','E']].forEach(([id,k])=>{
     set(id,{transform:`translate(${LAY.chip[k][0]},${LAY.chip[k][1]})`});
     const r=$(id).querySelector('rect'); r.setAttribute('x',-62); r.setAttribute('width',124);
   });
@@ -660,19 +660,19 @@ const scenes=[
   },
   {
     title:'One seed, an unbounded chain of hash-shielded stages',
-    body:'<code>aplane.rotating-triple-hybrid.v1</code> replaces a static key with a sequence of per-stage TEAL v13 LogicSigs, all derived from one 24-word BIP-39 seed via <strong>HKDF-SHA-512</strong> (bound to the network genesis hash and the stage number <code>i</code>). Until stage <code>i</code> signs, the chain holds only its 32-byte address <code>Aᵢ = SHA-512/256("Program" ‖ bytecode)</code>—none of its keys. Each stage embeds three fresh public keys from unrelated families: <strong>Ed25519</strong> (elliptic curve), <strong>Falcon-1024</strong> (lattice) and <strong>WOTS-w16</strong> (hash-based, SHA-256 only).'
+    body:'<code>aplane.rotating-triple-xmss.v1</code> replaces a static key with a sequence of TEAL v13 LogicSigs derived from one 24-word BIP-39 seed via <strong>HKDF-SHA-512</strong>, bound to the network genesis hash and the stage or tree number. Each stage has fresh <strong>Ed25519</strong> and <strong>Falcon-1024</strong> keys and a distinct range of 64 <strong>XMSS</strong> leaves. One <code>XMSS-SHA2_16_256</code> tree has 65,536 leaves and serves 1,024 stages. The stage address <code>Aᵢ = SHA-512/256("Program" ‖ bytecode)</code> hides its program until use, but the shared XMSS root and public seed become public when the first stage in that tree signs.'
   },
   {
     title:'Spend & atomic rotation: the spend that reveals A₀ hands authority to A₁',
-    body:'To spend from Stage 0, the signer builds a spend that rekeys the account to <code>A₁</code>, refuses any other target, and runs an open test proving Stage 1 can sign later. Only then does it sign the transaction ID with <strong>all three</strong> of Stage 0’s keys. On-chain, the TEAL v13 program checks the Ed25519 and Falcon-1024 signatures with built-in opcodes and the WOTS signature with 67 SHA-256 hash chains, requires the transaction to rekey the account away from itself, forbids closing the account, and enforces a tight validity window (<code>≤ 100</code> rounds). In the same block that <code>A₀</code>’s keys are revealed, authority moves to the unrevealed <code>A₁</code>.'
+    body:'To spend from Stage 0, the signer builds a spend that rekeys the account to <code>A₁</code>, refuses any other target, and runs an open test on Stage 1 without consuming an XMSS leaf. It signs the transaction ID with <strong>all three</strong> schemes. On-chain, the TEAL v13 program checks Ed25519 and Falcon-1024 with built-in opcodes, verifies the XMSS hash chains, L-tree and 16-level Merkle authentication path, and enforces the stage’s leaf range. It requires a rekey away from the account itself, forbids closing the account, and limits validity to <code>≤ 100</code> rounds. When the spend lands, authority moves to <code>A₁</code>, whose fresh Ed25519 and Falcon keys and new leaf range replace Stage 0’s authority.'
   },
   {
-    title:'Walking forward through fresh hashes — with a stateless signer',
-    body:'Account A’s address (<code>R4XK...Q3TZ</code>) never changes, while its <code>auth-addr</code> walks monotonically forward on every spend: <code>A₀ → A₁ → A₂ → A₃…</code>. The signer stores <strong>no mutable stage counter</strong>: it reads the live authorizer from the chain, resolves <code>n</code> against its derivable stage table, and re-derives <code>Aₙ₊₁</code> from the seed—so backups never go stale. Signing once per stage is also exactly what a <strong>one-time</strong> WOTS key needs: the chain itself records which stages are spent.'
+    title:'The chain tracks stages; the signer tracks XMSS leaf use',
+    body:'Account A’s address (<code>R4XK...Q3TZ</code>) never changes, while its <code>auth-addr</code> walks forward on every confirmed spend: <code>A₀ → A₁ → A₂ → A₃…</code>. The signer resolves the live stage from the chain and derives its successor from the seed. XMSS also needs a record of leaves used by attempts that never land: the signer uses release memory and its audit log to select a different leaf for each distinct attempt, up to 64 per stage. The recovery phrase rebuilds keys and public trees, but does not restore that attempt history. Leaf tracking is best effort; this is not a claim of a conformant stateful XMSS signer.'
   },
   {
     title:'Defense in depth: hash at rest, triple hybrid in flight, dead keys behind',
-    body:'<strong>1) Hash at rest:</strong> the live stage is only a 32-byte hash. No key exists on chain for an attacker to work on, whatever mathematics arrives.<br><strong>2) Retired stages are powerless:</strong> even if an adversary later breaks revealed Stage 0 keys, the ledger rejects any spend from Account A signed by <code>A₀</code> because <code>auth-addr</code> has already moved to <code>A₁</code>.<br><strong>3) Triple hybrid in flight:</strong> a stage’s keys are public only between broadcast and confirmation, about one block. To exploit that moment a forger must break an elliptic curve, a lattice <em>and</em> a hash function, then land a competing transaction first.<br><strong>4) The honest limit:</strong> if a broadcast spend never lands, that stage’s keys are public while it is still the authorizer; the <code>≤ 100</code>-round window keeps that short. If the stage then signs a replacement, its one-time WOTS key no longer counts, and it rests on Falcon-1024 and Ed25519 until a spend lands.'
+    body:'<strong>1) Hash at rest:</strong> the stage address hides its fresh Ed25519 and Falcon keys until use; the XMSS root may already be public from an earlier stage.<br><strong>2) Retired stages are powerless:</strong> the ledger rejects <code>A₀</code> once <code>auth-addr</code> moves to <code>A₁</code>, and the new program rejects the retired XMSS leaf range.<br><strong>3) Triple hybrid in flight:</strong> a forger must pass all three signature checks and land a competing transaction before rotation. Only the fresh Ed25519 and Falcon keys are guaranteed to be hidden before this stage signs.<br><strong>4) Retries and exposure:</strong> an unconfirmed broadcast leaves the stage’s keys exposed until rotation; the <code>≤ 100</code>-round limit expires that transaction, not the keys. Up to 64 distinct attempts can use separate XMSS leaves. Reusing a leaf after exhausting that range or losing attempt history weakens the XMSS protection, leaving Falcon-1024 and Ed25519 until rotation; the signer reports detected reuse.'
   }
 ];
 
@@ -763,7 +763,7 @@ function stageSignals(color){
   return [
     {label:'sig_F',from:LAY.chip.F,to:SIG_POS.F,color:color||'#f0b45c'},
     {label:'sig_E',from:LAY.chip.E,to:SIG_POS.E,color:color||'#6eb5ff'},
-    {label:'sig_W',from:LAY.chip.W,to:SIG_POS.W,color:color||'#b48cff'},
+    {label:'sig_X',from:LAY.chip.X,to:SIG_POS.X,color:color||'#b48cff'},
   ];
 }
 async function slideSignals(specs,dur){
@@ -821,17 +821,17 @@ function configureRotatingStage(n, showRetired){
   const key=PORTRAIT?'':' KEY';
   $('rotFalconChipText').textContent=`FALCON-1024${key} #${n}`;
   $('rotEdChipText').textContent=`ED25519${key} #${n}`;
-  $('rotWotsChipText').textContent=`WOTS-W16${key} #${n}`;
+  $('rotXmssChipText').textContent=`XMSS${PORTRAIT?'':' LEAVES'} #${n}`;
   $('rotKeyGroupLabel').textContent=`STAGE ${n} KEYS`;
   $('rotGateTitle').textContent=`STAGE ${n} LOGICSIG (A${subNum(n)}) · TEAL V13`;
   $('rotStageBadge').setAttribute('class','chip teal');
   $('rotStageBadgeText').textContent='🔒 HASH-SHIELDED AT REST';
   $('rotGateResult').textContent=`→ spend + rotate to A${subNum(next)} authorized`;
   $('rotGateResult').classList.remove('on','fail');
-  ['rotChk1','rotChk2','rotChkW'].forEach(id=>$(id).classList.remove('done','fail'));
+  ['rotChk1','rotChk2','rotChkX'].forEach(id=>$(id).classList.remove('done','fail'));
 
   $('queuedTitle').textContent=`NEXT: STAGE ${next} (A${subNum(next)} · ${STAGE_ADDRS[next]||'DERIVED'})`;
-  $('queuedSub').textContent=`🔒 32-byte hash only · all 3 keys of stage ${next} hidden`;
+  $('queuedSub').textContent='🔒 fresh Ed/Falcon keys · new XMSS leaf range';
   $('queuedSlot').setAttribute('transform','translate(520,508)');
   $('queuedSlot').setAttribute('opacity','1');
 
@@ -889,7 +889,7 @@ async function animateStageRotation(n){
         swapped=true;
         configureRotatingStage(next, true);
         $('queuedTitle').textContent=`NEXT: STAGE ${afterNext} (A${subNum(afterNext)} · ${STAGE_ADDRS[afterNext]||'DERIVED'})`;
-        $('queuedSub').textContent=`🔒 32-byte hash only · all 3 keys of stage ${afterNext} hidden`;
+        $('queuedSub').textContent='🔒 fresh Ed/Falcon keys · new XMSS leaf range';
       }
       const v=ease((p-0.48)/0.52);
       $('activeStageGate').setAttribute('transform',`translate(0,${lerp(135,0,v)})`);
@@ -1027,7 +1027,7 @@ async function loopScene1(){
       flash(cards[i],1350);
       if(!await sleep(520)) return;
     }
-    stamp(765,64,'ALL PUBLIC KEYS HIDDEN BEHIND 32B HASHES',true);
+    stamp(765,64,'FRESH ED/FALCON KEYS · DISTINCT XMSS LEAF RANGES',true);
     if(!await sleep(3600)) return;
   }
 }
@@ -1049,7 +1049,7 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   bub.classList.add('staged');
   if(!await sleep(650)){ bub.remove(); return false; }
 
-  /* Ed25519, Falcon-1024 and WOTS signatures travel into the TEAL gate */
+  /* Ed25519, Falcon-1024 and XMSS signatures travel into the TEAL gate */
   updateConveyorPills(stageIdx, true);
   $('rotStageBadge').setAttribute('class','chip amber');
   $('rotStageBadgeText').textContent=`SIGNING: STAGE ${stageIdx} KEYS REVEALED IN TX`;
@@ -1063,7 +1063,7 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
   if(!await sleep(380)){ drop(); bub.remove(); return false; }
   $('rotChk1').classList.add('done');
   $('rotChk2').classList.add('done');
-  $('rotChkW').classList.add('done');
+  $('rotChkX').classList.add('done');
   if(!await sleep(760)){ drop(); bub.remove(); return false; }
 
   $('rotGateResult').classList.add('on');
@@ -1179,7 +1179,7 @@ async function loopScene4(){
     if(!await sleep(400)){ dropB(); okBub.remove(); return; }
     $('rotChk1').classList.add('done');
     $('rotChk2').classList.add('done');
-    $('rotChkW').classList.add('done');
+    $('rotChkX').classList.add('done');
     if(!await sleep(680)){ dropB(); okBub.remove(); return; }
     $('rotGateResult').classList.add('on');
     if(!await sleep(680)){ dropB(); okBub.remove(); return; }
@@ -1213,7 +1213,7 @@ function staticFrame(n){
     showLayer('layerRotating');
     setFootnote('THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)');
     configureRotatingStage(1, true);
-    ['rotChk1','rotChk2','rotChkW'].forEach(id=>$(id).classList.add('done'));
+    ['rotChk1','rotChk2','rotChkX'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
     mark(LAY.recvMark[0],LAY.recvMark[1],true);
@@ -1221,7 +1221,7 @@ function staticFrame(n){
     showLayer('layerRotating');
     setFootnote('STATELESS SIGNER: READS LIVE AUTH-ADDR FROM CHAIN AND RE-DERIVES Aₙ₊₁ FROM SEED');
     configureRotatingStage(2, true);
-    ['rotChk1','rotChk2','rotChkW'].forEach(id=>$(id).classList.add('done'));
+    ['rotChk1','rotChk2','rotChkX'].forEach(id=>$(id).classList.add('done'));
     $('rotGateResult').classList.add('on');
     $('rotGateItems').setAttribute('opacity','1'); $('rotGateResultWrap').setAttribute('opacity','1'); $('rotGateSealed').setAttribute('opacity','0');
     mark(LAY.recvMark[0],LAY.recvMark[1],true);
