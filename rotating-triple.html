@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A Better Bunker</title>
-<meta name="description" content="An Algorand account protected by Ed25519, Falcon-1024 and XMSS signatures, with a new authorizing stage on every confirmed spend.">
+<meta name="description" content="An Algorand account protected by Ed25519, Falcon-1024 and SLH-DSA signatures, with a new authorizing stage on every confirmed spend.">
 <style>
 :root{
-  --bg:#f6f7f2; --ink:#111111; --muted:#5b5f66; --border:#d7dacd; --teal:#0a7d6b; --code-bg:#eceee6;
+  --bg:#dedede; --ink:#111111; --muted:#5b5f66; --border:#d7dacd; --teal:#0a7d6b; --code-bg:#eceee6;
   --blue:#2f6fd6; --amber:#b9770e; --violet:#7b4fd0;
   --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
@@ -21,10 +21,6 @@ a{color:var(--teal)}
 h1{font-size:clamp(32px,5.5vw,46px);line-height:1.1;letter-spacing:-.01em;margin:28px 0 12px}
 .dek{font-size:20px;color:var(--muted);margin:0 0 28px;text-wrap:pretty}
 
-.account{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:0 0 36px}
-.account .label{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.account a{display:block;font-family:var(--mono);font-size:15px;word-break:break-all;margin-top:4px}
-
 ol.points{list-style:none;counter-reset:pt;padding:0;margin:0}
 ol.points>li{counter-increment:pt;position:relative;padding:0 0 0 56px;margin:0 0 30px}
 ol.points>li::before{content:counter(pt);position:absolute;left:0;top:2px;width:38px;height:38px;border-radius:50%;
@@ -34,7 +30,7 @@ ol.points p{margin:0;text-wrap:pretty}
 .keys{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .key{font:600 13px var(--mono);padding:3px 9px;border-radius:6px;border:1.5px solid;background:#fff}
 .key.fa{color:var(--amber);border-color:var(--amber)}
-.key.xm{color:var(--violet);border-color:var(--violet)}
+.key.slh{color:var(--violet);border-color:var(--violet)}
 .key.ed{color:var(--blue);border-color:var(--blue)}
 
 
@@ -63,7 +59,7 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   <h1>Rotating Triple-Sig: A better bunker?</h1>
   <p class="dek">
 
-  An Algorand account type protected by Ed25519, Falcon-1024 and XMSS signatures. Each confirmed spend rotates authority to fresh Ed25519 and Falcon keys and a new range of XMSS leaves.
+  An Algorand account type protected by Ed25519, Falcon-1024 and SLH-DSA signatures. Each confirmed spend rotates authority to fresh Ed25519, Falcon-1024 and SLH-DSA keys.
 
   </p>
 
@@ -79,43 +75,36 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
     <span style="--c:#f26b6b">exposed key / rejected</span>
     <span style="--c:#6eb5ff">Ed25519 (elliptic curve)</span>
     <span style="--c:#f0b45c">Falcon-1024 (lattice)</span>
-    <span style="--c:#b48cff">XMSS (hash-based)</span>
+    <span style="--c:#b48cff">SLH-DSA (hash-based)</span>
   </div>
 </section>
 
 <article>
-  <div class="account">
-    <div class="label">Check this account out on mainnet</div>
-    <!-- TODO: replace ABCCDFDEF with the real mainnet address (text and link) -->
-    <a href="https://lora.algokit.io/mainnet/account/ABCCDFDEF" target="_blank" rel="noopener">ABCCDFDEF</a>
-  </div>
-
   <ol class="points">
     <li>
-      <h2>Three keys on every transaction, not one</h2>
-      <p>Each of its transactions is protected by three keys from three unrelated families of cryptography. All three must sign. Even if two of those schemes were broken, the third would still protect the account.</p>
-      <div class="keys"><span class="key fa">Falcon-1024 · lattice</span><span class="key xm">XMSS · hash-based</span><span class="key ed">Ed25519 · elliptic curve</span></div>
+      <h2>Three signatures on every outgoing transaction</h2>
+      <p>Every outgoing transaction requires signatures from three different families of cryptography. Even if two schemes were broken, the third can still protect the account. All three derive from one seed, so keeping that seed safe is essential.</p>
+      <div class="keys"><span class="key fa">Falcon-1024 · lattice</span><span class="key slh">SLH-DSA · hash-based</span><span class="key ed">Ed25519 · elliptic curve</span></div>
     </li>
     <li>
       <h2>A new key set on every transaction</h2>
-      <p>Each confirmed spend rekeys the account to a new stage with fresh Ed25519 and Falcon-1024 keys and its own 64 XMSS leaves. One XMSS tree serves 1,024 stages, so its public root is shared. The account’s address, balance and assets never move.</p>
+      <p>Each confirmed spend rekeys the account to a new stage with fresh Ed25519, Falcon-1024 and SLH-DSA keys. A stage key signs only a few messages, so the SLH-DSA key uses the FIPS 205 construction with a shorter, two-layer hypertree; that is not a FIPS 205 parameter set. The account’s address stays the same. Rotation changes its authority without moving its remaining funds or assets to another account.</p>
     </li>
     <li>
       <h2>Invisible at rest</h2>
-      <p>The next stage’s program and its fresh Ed25519 and Falcon public keys stay off chain until it signs. Its authorizer address is a 32-byte hash. The shared XMSS root is already public once an earlier stage in that tree has signed.</p>
+      <p>The next stage’s program and its fresh Ed25519, Falcon-1024 and SLH-DSA public keys stay off chain until it signs. Its authorizer address is a 32-byte hash. No public key carries over from an earlier stage.</p>
     </li>
     <li>
-      <h2>Visible only as it is retired</h2>
-      <p>The live stage’s program becomes visible when a transaction is submitted. Once that transaction is final, usually within about 3 seconds, the stage is retired: the same transaction has rotated in fresh Ed25519 and Falcon keys and a new XMSS leaf range. The next stage rejects signatures using the retired range.</p>
+      <h2>Revealed on use, retired on confirmation</h2>
+      <p>Broadcasting a transaction reveals the live stage’s program. When it confirms, authority moves to fresh Ed25519, Falcon-1024 and SLH-DSA keys. The old program remains public but can no longer authorize the account. If the transaction fails or expires, the exposed stage stays active until another rotation confirms.</p>
     </li>
     <li>
-      <h2>Three signature checks and a race</h2>
-      <p>A forged spend must pass all three signature checks and finalize before the real spend rotates authority away. Fresh Ed25519 and Falcon keys are exposed at broadcast; the shared XMSS root may have been public longer. Each stage can sign up to 64 distinct attempts on separate leaves without reusing a one-time key. Reusing a leaf weakens the XMSS protection until rotation, so the signer tracks attempts in release memory and its audit log.</p>
+      <h2>Three signature checks</h2>
+      <p>A forged spend must pass all three signature checks while the stage still controls the account. SLH-DSA is stateless, so retries and a restored signer need no record of earlier attempts, and signing the same transaction again gives the same signature. Its margin shrinks only gradually with the number of distinct transactions one stage signs. A stage normally signs one; the design assumes at most 65,536.</p>
     </li>
     <li>
-	<h2>No stateful smart contract required</h2>
-	<p>Authorization uses Algorand's stateless Logic Signatures. Each keyset verification program is sent just-in-time with the transaction, without deploying a stateful application. Fewer moving parts to implement and audit.
-
+      <h2>No stateful application to deploy</h2>
+      <p>Authorization uses Algorand’s stateless Logic Signatures. Each verification program travels with the transaction, so there is no stateful application to deploy. The transaction still carries the program, signatures, supporting transactions and fees.</p>
     </li>
   </ol>
 
