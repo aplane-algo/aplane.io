@@ -83,12 +83,12 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   <ol class="points">
     <li>
       <h2>Three signatures on every outgoing transaction</h2>
-      <p>Every outgoing transaction requires signatures from three different families of cryptography. Even if two schemes were broken, the third can still protect the account. All three derive from one seed, so keeping that seed safe is essential.</p>
+      <p>Every outgoing transaction requires signatures from three different families of cryptography. Even if two schemes are broken, the third still protects the account. All three keys come from a single seed. Falcon-1024 is the core scheme, at NIST security category 5, the highest. Two-layer SLH-DSA and Ed25519 provide additional protection.</p>
       <div class="keys"><span class="key fa">Falcon-1024 · lattice</span><span class="key slh">SLH-DSA · hash-based</span><span class="key ed">Ed25519 · elliptic curve</span></div>
     </li>
     <li>
       <h2>A new key set on every transaction</h2>
-      <p>Each confirmed spend rekeys the account to a new stage with fresh Ed25519, Falcon-1024 and SLH-DSA keys. A stage key signs only a few messages, so the SLH-DSA key uses the FIPS 205 construction with a shorter, two-layer hypertree; that is not a FIPS 205 parameter set. The account’s address stays the same. Rotation changes its authority without moving its remaining funds or assets to another account.</p>
+      <p>Each confirmed spend rekeys the account to a new stage with fresh Ed25519, Falcon-1024 and SLH-DSA keys. A stage key usually signs only one transaction, so the SLH-DSA key uses the FIPS 205 construction with a non-standard, shorter two-layer hypertree, which still gives room for the occasional retry. The account’s address stays the same. Rotation changes its authority without moving its remaining funds or assets to another account.</p>
     </li>
     <li>
       <h2>Invisible at rest</h2>
