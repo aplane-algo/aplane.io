@@ -170,7 +170,7 @@ dfn:hover::after,dfn:focus::after{display:block}
 <body>
 <header class="wrap">
   <h1>Triple-Sig Bunker on Algorand</h1>
-  <p class="sub">How rotating triple hybrid accounts combine fresh Ed25519 and Falcon keys with XMSS leaf ranges, without ever moving your funds to a new address.</p>
+  <p class="sub">How rotating triple hybrid accounts combine fresh Ed25519, Falcon and SLH-DSA keys on every spend, without ever moving your funds to a new address.</p>
 </header>
 <main class="wrap">
   <div class="stage-frame" id="frame">
@@ -199,7 +199,7 @@ dfn:hover::after,dfn:focus::after{display:block}
     <div class="leg-item"><span class="leg-dot red"></span>exposed key / rejected</div>
     <div class="leg-item"><span class="leg-dot blue"></span>Ed25519 (elliptic curve)</div>
     <div class="leg-item"><span class="leg-dot amber"></span>Falcon-1024 (lattice)</div>
-    <div class="leg-item"><span class="leg-dot violet"></span>XMSS (hash-based)</div>
+    <div class="leg-item"><span class="leg-dot violet"></span>SLH-DSA (hash-based)</div>
   </div>
   <section class="caption" aria-live="polite">
     <div class="caption-inner" id="capInner">
@@ -240,8 +240,8 @@ const GLOSSARY={
   'derivation':'Computing keys from a seed. The same seed always gives the same keys, but keys reveal nothing about the seed.',
   'round':'One Algorand block, about 3 seconds.',
   'lands':'Is confirmed in a block.',
-  'open test':'Testing the next stage’s Ed25519 and Falcon keys and checking its XMSS root, public seed and leaf range without consuming a leaf.',
-  'one-time key':'A key that is safe to sign only one message. Each XMSS leaf uses a one-time key; a tree supports many signatures on distinct leaves.',
+  'open test':'Testing the next stage’s Ed25519, Falcon and SLH-DSA keys by signing a message that is never released.',
+  'stateless signature':'A hash-based signature that keeps no record of past signatures: SLH-DSA derives which of its internal keys to use from the message it signs.',
   'opcode':'An instruction built into the chain’s program engine.'
 };
 const T=(word,key)=>`<dfn tabindex="0" data-def="${GLOSSARY[key||word]}">${word}</dfn>`;
@@ -269,7 +269,7 @@ const chapters=[
     title:'Algorand Rekeying: change the key, keep the address',
     run:ch3,
     body:`<p>Algorand can separate who an account is from who may sign for it. Every account can name another address as its ${T('auth-addr')}, and a single transaction can change it. This is called a ${T('rekey')}. The account’s address, balance, assets and history stay exactly where they are.</p>
-<p>So instead of moving the funds after every spend, we point the account at a fresh stage. The authorizer is a ${T('LogicSig')}: its address is a hash of a small program. This hides the stage’s fresh Ed25519 and Falcon public keys until the program is submitted. Its XMSS root is shared with other stages and may already be public.</p>`,
+<p>So instead of moving the funds after every spend, we point the account at a fresh stage. The authorizer is a ${T('LogicSig')}: its address is a hash of a small program. This hides the stage’s fresh Ed25519, Falcon and SLH-DSA public keys until the program is submitted.</p>`,
     take:'Rekeying moves the key, not the money.'
   },
   {
@@ -282,46 +282,46 @@ const chapters=[
   {
     title:'Three signature checks before rotation',
     run:ch5,
-    body:`<p>Every key in this design is really three, from three unrelated families, and every spend needs all three signatures: <strong>Ed25519</strong> (${T('elliptic curve')}, decades of scrutiny), <strong>Falcon-1024</strong> (${T('lattice')}, standardized for ${T('post-quantum')} use), and <strong>XMSS</strong>, a ${T('hash-based signature')} built from SHA-256 alone.</p>`,
+    body:`<p>Every key in this design is really three, from three unrelated families, and every spend needs all three signatures: <strong>Ed25519</strong> (${T('elliptic curve')}, decades of scrutiny), <strong>Falcon-1024</strong> (${T('lattice')}, standardized for ${T('post-quantum')} use), and <strong>SLH-DSA</strong>, a ${T('hash-based signature')} built from SHA-256 alone.</p>`,
     take:'Three unrelated hard problems: a forger has to win all three.'
   },
   {
     title:'One phrase, an endless chain of hidden stages',
     embed:1,
-    body:`<p>A rotating triple hybrid account comes from one 24-word ${T('recovery phrase')}. From it the signer derives a sequence of <strong>stages</strong>, 0, 1, 2 and onward. Each stage has fresh Ed25519 and Falcon keys plus its own range of 64 XMSS leaves.</p>
-<p>The ${T('derivation')} always produces the same stages from the same phrase. The signature format follows <a href="https://www.rfc-editor.org/rfc/rfc8391.html">RFC 8391</a>. One <code>XMSS-SHA2_16_256</code> tree contains 65,536 leaves and serves 1,024 stages. Each stage embeds the shared root and public seed and accepts only leaves in its own range.</p>
-<p>Each XMSS leaf uses a ${T('one-time key')}. Different leaves let a stage sign up to 64 distinct attempts without reuse. The chain records confirmed rotations; the signer’s release memory and audit log track attempts, including those that never land.</p>`,
-    take:'One phrase derives every stage; attempt history tracks one-time leaf use.'
+    body:`<p>A rotating triple hybrid account comes from one 24-word ${T('recovery phrase')}. From it the signer derives a sequence of <strong>stages</strong>, 0, 1, 2 and onward. Each stage has fresh Ed25519, Falcon and SLH-DSA keys.</p>
+<p>The ${T('derivation')} always produces the same stages from the same phrase. The SLH-DSA keys use the SLH-DSA-SHA2-128s construction of <a href="https://csrc.nist.gov/pubs/fips/205/final">FIPS 205</a> with a shorter, two-layer hypertree. That is not a FIPS 205 parameter set: the standard tree lets one key sign 2<sup>64</sup> messages, and a stage key signs only a few.</p>
+<p>SLH-DSA is a ${T('stateless signature')}, so the signer keeps no record of one-time keys. Signing the same transaction again gives the same signature. Each distinct transaction a stage signs costs a little security margin, and a stage normally signs one.</p>`,
+    take:'One phrase derives every stage; there is no signing history to keep.'
   },
   {
     title:'Spend and rotate in one transaction',
     embed:2,
     body:`<p>To spend, the current stage signs the transaction with all three of its keys, and the same transaction rekeys the account to the next stage. The LogicSig program checks, on chain, that all three signatures are valid. The signer picks the next stage as the new authorizer, refuses any other target, and first runs an ${T('open test')} on it.</p>
-<p>The transaction that reveals stage 0’s program is the same one that takes authority away from stage 0. When it ${T('lands')}, the account answers to stage 1, with fresh Ed25519 and Falcon keys and a new XMSS leaf range. The shared XMSS root remains public.</p>
+<p>The transaction that reveals stage 0’s program is the same one that takes authority away from stage 0. When it ${T('lands')}, the account answers to stage 1, with fresh Ed25519, Falcon and SLH-DSA keys.</p>
 <p><strong>Why doesn’t the program name the next stage itself?</strong> It can’t: stage 1’s address is the hash of a program that would have to name stage 2, and so on forever. That doesn’t help a thief, who would still need the current stage’s keys to send anything at all. The signer’s rule protects the owner from mistakes.</p>`,
     take:'One confirmed spend reveals the current program and retires its authority.'
   },
   {
-    title:'The chain tracks stages; the signer tracks leaves',
+    title:'The chain tracks stages; SLH-DSA needs no history',
     embed:3,
     body:`<p>The account’s address never changes while its authorizer walks forward: stage 0, 1, 2, 3. The signer keeps no stage counter. Before each spend it reads the account’s current authorizer from the chain, works out which stage that is, and derives the next one from the phrase.</p>
-<p>The recovery phrase restores the keys and public trees, but not the history of unconfirmed signing attempts. The signer uses release memory and its audit log to avoid reusing XMSS leaves. Losing that history can cause reuse; leaf tracking is best effort, not a claim of a conformant stateful XMSS signer.</p>`,
-    take:'Recover the stage from the chain; preserve attempt history to avoid leaf reuse.'
+<p>The recovery phrase restores everything signing needs. SLH-DSA has no one-time leaves to track, so a restored signer or a retry does not need the history of unconfirmed attempts.</p>`,
+    take:'Recover the stage from the chain; the phrase restores the rest.'
   },
   {
     title:'What an attacker actually faces',
     embed:4,
-    body:`<p><strong>At rest</strong>, the stage hash hides fresh Ed25519 and Falcon keys; its shared XMSS root may already be public. <strong>Behind</strong>, retired stages cannot authorize the account, and the current program rejects their XMSS leaf ranges. <strong>In flight</strong>, a forger must pass all three signature checks and land a competing transaction before rotation.</p>
-<p><strong>The honest limit:</strong> a broadcast that never lands leaves the current stage exposed until rotation. The 100-round validity window expires the transaction, not its exposed keys. Retries on distinct XMSS leaves preserve all three schemes for up to 64 attempts. Reusing a leaf after exhaustion or lost history weakens the XMSS protection, leaving Falcon and Ed25519 until rotation. The signer reports detected reuse.</p>`,
+    body:`<p><strong>At rest</strong>, the stage hash hides fresh Ed25519, Falcon and SLH-DSA keys; no public key carries over from an earlier stage. <strong>Behind</strong>, retired stages cannot authorize the account. <strong>In flight</strong>, a forger must pass all three signature checks and land a competing transaction before rotation.</p>
+<p><strong>The honest limit:</strong> a broadcast that never lands leaves the current stage exposed until rotation. The 100-round validity window expires the transaction, not its exposed keys. Retries keep all three schemes. Each distinct transaction a stage signs costs SLH-DSA a little margin, and the design assumes at most 65,536 per stage. A rotate-only spend retires the stage at any time.</p>`,
     take:'All three signatures are required; a successful rotation retires the exposed stage.'
   },
   {
     title:'Bunker mode, without the bunker',
     run:ch9,
-    body:`<p><strong>1. Fresh stage keys stay hidden until use.</strong> A stage authorizes one landed spend, then the account moves to fresh Ed25519 and Falcon keys and a new XMSS leaf range. The XMSS root is shared across 1,024 stages and becomes public on its first use.</p>
+    body:`<p><strong>1. Fresh stage keys stay hidden until use.</strong> A stage authorizes one landed spend, then the account moves to fresh Ed25519, Falcon and SLH-DSA keys. No public key is shared between stages.</p>
 <p><strong>2. Stable address.</strong> The address, balance and assets never move, and nobody who pays you has to learn anything new. That is what bunker mode costs, gone.</p>
 <p><strong>3. No on-chain state to defend.</strong> LogicSigs are programs, so this isn’t “no code”. But nothing is stored on chain: no contract storage, no upgrade authority, no admin key. The only thing that changes is the account’s ordinary auth-addr.</p>
-<p><strong>4. Cheap rotation.</strong> The rotation is a field of the spend itself, with no separate setup transaction. Ed25519 and Falcon are checked by ${T('opcode','opcode')}s built into the chain; XMSS verification uses SHA-256 hash chains, an L-tree and a Merkle authentication path inside the stage program. The spend carries four companion transactions for signature size and verification budget: five minimum fees, about 0.005 ALGO at the base minimum fee.</p>`,
+<p><strong>4. Cheap rotation.</strong> The rotation is a field of the spend itself, with no separate setup transaction. Ed25519 and Falcon are checked by ${T('opcode','opcode')}s built into the chain; SLH-DSA verification runs its FORS trees and two hypertree layers of WOTS+ hash chains and Merkle authentication paths inside the stage program. The spend carries five companion transactions for signature size and verification budget: six minimum fees, about 0.006 ALGO at the base minimum fee.</p>`,
     take:'Bunker-mode security on every spend, with none of bunker mode’s migrations.'
   }
 ];
@@ -641,7 +641,7 @@ async function ch5(){
   const three=[
     shield(partB,330,270,'blue','ELLIPTIC','Ed25519'),
     shield(partB,600,270,'amber','LATTICE','Falcon-1024'),
-    shield(partB,870,270,'violet','HASH','XMSS · SHA-256')
+    shield(partB,870,270,'violet','HASH','SLH-DSA · SHA-256')
   ];
   three.forEach(s=>el('path',{class:'flink-dim',d:`M${s.x} 362 Q${s.x} 420 600 470`},partB));
   const lockB=chip(partB,600,482,330,'SPEND NEEDS ALL THREE SIGNATURES','teal');
@@ -653,7 +653,7 @@ async function ch5(){
     clearFx();
     label.textContent='THREE UNRELATED HARD PROBLEMS';
     lockB.set('teal','SPEND NEEDS ALL THREE SIGNATURES');
-    const SUBS=['Ed25519','Falcon-1024','XMSS · SHA-256'];
+    const SUBS=['Ed25519','Falcon-1024','SLH-DSA · SHA-256'];
     const SURVIVORS=[1,2,0];
     for(let round=0;round<SURVIVORS.length;round++){
       const keep=SURVIVORS[round];
@@ -690,10 +690,10 @@ async function ch5(){
 /* CHAPTER 9: the four properties, plus the triple                          */
 /* ======================================================================== */
 const PANELS=[
-  {x:315,y:160,n:'1',title:'FRESH KEYS PER STAGE',l1:'Ed25519 + Falcon keys hidden until use;',l2:'distinct XMSS leaves under a shared root',tag:'CH 1 · 7'},
+  {x:315,y:160,n:'1',title:'FRESH KEYS PER STAGE',l1:'Ed25519, Falcon and SLH-DSA keys hidden',l2:'until use; none shared between stages',tag:'CH 1 · 7'},
   {x:885,y:160,n:'2',title:'STABLE ADDRESS',l1:'address, balance and assets never move;',l2:'nobody who pays you learns anything new',tag:'CH 2 · 3'},
   {x:315,y:350,n:'3',title:'NO ON-CHAIN STATE',l1:'no contract storage, no upgrade key, no admin;',l2:'only the account’s auth-addr changes',tag:'CH 3 · 7'},
-  {x:885,y:350,n:'4',title:'CHEAP ROTATION',l1:'rides inside the spend: five minimum fees,',l2:'about 0.005 ALGO at the base minimum fee',tag:'CH 6 · 7'}
+  {x:885,y:350,n:'4',title:'CHEAP ROTATION',l1:'rides inside the spend: six minimum fees,',l2:'about 0.006 ALGO at the base minimum fee',tag:'CH 6 · 7'}
 ];
 async function ch9(){
   const t=token;
@@ -713,7 +713,7 @@ async function ch9(){
   el('rect',{class:'gate-box',x:-430,y:-30,width:860,height:60,rx:12},bar);
   chip(bar,-330,0,150,'ELLIPTIC · Ed25519','blue');
   chip(bar,-160,0,170,'LATTICE · Falcon-1024','amber');
-  chip(bar,20,0,170,'HASH · XMSS / SHA-256','violet');
+  chip(bar,20,0,170,'HASH · SLH-DSA','violet');
   el('text',{class:'node-sub',x:125,y:4},bar,'every stage · a forger needs all three');
   while(t.alive){
     groups.forEach(g=>g.setAttribute('opacity','0')); bar.setAttribute('opacity','0');
