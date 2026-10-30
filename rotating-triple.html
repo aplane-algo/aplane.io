@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A Better Bunker</title>
+<title>Rotating Triple-Sig Accounts on Algorand</title>
 <meta name="description" content="An Algorand account protected by Ed25519, Falcon-1024 and SLH-DSA signatures, with a new authorizing stage on every confirmed spend.">
 <style>
 :root{
@@ -56,10 +56,10 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 <body>
 <article>
   <a class="back" href="index.html">← aplane.io</a>
-  <h1>Rotating Triple-Sig: A better bunker?</h1>
+  <h1>Rotating Triple-Sig Accounts on Algorand</h1>
   <p class="dek">
 
-  An Algorand account type protected by Ed25519, Falcon-1024 and SLH-DSA signatures. Each confirmed spend rotates authority to fresh Ed25519, Falcon-1024 and SLH-DSA keys.
+  An Algorand account type protected simultaneously by lattice Falcon-1024, hash-based two-layer SLH-DSA and elliptic-curve Ed25519 signatures, all three hidden until use. Each confirmed transaction atomically rotates authority to a fresh set of keys.
 
   </p>
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A Triple Signature Bunker on Algorand</title>
+<title>Triple-Sig Bunker on Algorand</title>
 <style>
 :root{
   --bg:#0a0f1d; --panel:#131b2f; --panel-deep:#0e1526;
@@ -170,7 +170,7 @@ dfn:hover::after,dfn:focus::after{display:block}
 <body>
 <header class="wrap">
   <h1>Triple-Sig Bunker on Algorand</h1>
-  <p class="sub">How rotating triple hybrid accounts combine fresh Ed25519, Falcon and SLH-DSA keys on every spend, without ever moving your funds to a new address.</p>
+  <p class="sub">How Rotating Triple-Sig accounts combine fresh Ed25519, Falcon and SLH-DSA keys on every spend, without ever moving your funds to a new address.</p>
 </header>
 <main class="wrap">
   <div class="stage-frame" id="frame">
@@ -185,7 +185,7 @@ dfn:hover::after,dfn:focus::after{display:block}
       <g id="scene"></g>
       <g id="fx"></g>
     </svg>
-    <iframe id="embed" title="Rotating triple hybrid account animation" tabindex="-1"></iframe>
+    <iframe id="embed" title="Rotating Triple-Sig account animation" tabindex="-1"></iframe>
   </div>
   <nav class="controls" aria-label="Chapter controls">
     <button class="ctl-btn" id="btnPrev">‹ Back</button>
@@ -210,7 +210,7 @@ dfn:hover::after,dfn:focus::after{display:block}
       <div class="terms" id="capTerms"></div>
     </div>
   </section>
-  <p class="deeper">Go deeper: <a href="rotating.html">the full rotating triple hybrid walkthrough</a> · <a href="constrained.html">constrained Falcon accounts</a> · <a href="mesh.html">a constrained payment mesh</a></p>
+  <p class="deeper">Go deeper: <a href="rotating.html">the full Rotating Triple-Sig walkthrough</a> · <a href="constrained.html">constrained Falcon accounts</a> · <a href="mesh.html">a constrained payment mesh</a></p>
 </main>
 
 <script>
@@ -266,7 +266,7 @@ const chapters=[
     take:'The problem with bunker mode isn’t the new key. It’s the new address.'
   },
   {
-    title:'Algorand Rekeying: change the key, keep the address',
+    title:'Algorand rekeying: change the key, keep the address',
     run:ch3,
     body:`<p>Algorand can separate who an account is from who may sign for it. Every account can name another address as its ${T('auth-addr')}, and a single transaction can change it. This is called a ${T('rekey')}. The account’s address, balance, assets and history stay exactly where they are.</p>
 <p>So instead of moving the funds after every spend, we point the account at a fresh stage. The authorizer is a ${T('LogicSig')}: its address is a hash of a small program. This hides the stage’s fresh Ed25519, Falcon and SLH-DSA public keys until the program is submitted.</p>`,
@@ -288,7 +288,7 @@ const chapters=[
   {
     title:'One phrase, an endless chain of hidden stages',
     embed:1,
-    body:`<p>A rotating triple hybrid account comes from one 24-word ${T('recovery phrase')}. From it the signer derives a sequence of <strong>stages</strong>, 0, 1, 2 and onward. Each stage has fresh Ed25519, Falcon and SLH-DSA keys.</p>
+    body:`<p>A Rotating Triple-Sig account comes from one 24-word ${T('recovery phrase')}. From it the signer derives a sequence of <strong>stages</strong>, 0, 1, 2 and onward. Each stage has fresh Ed25519, Falcon and SLH-DSA keys.</p>
 <p>The ${T('derivation')} always produces the same stages from the same phrase. The SLH-DSA keys use the SLH-DSA-SHA2-128s construction of <a href="https://csrc.nist.gov/pubs/fips/205/final">FIPS 205</a> with a shorter, two-layer hypertree. That is not a FIPS 205 parameter set: the standard tree lets one key sign 2<sup>64</sup> messages, and a stage key signs only a few.</p>
 <p>SLH-DSA is a ${T('stateless signature')}, so the signer keeps no record of one-time keys. Signing the same transaction again gives the same signature. Each distinct transaction a stage signs costs a little security margin, and a stage normally signs one.</p>`,
     take:'One phrase derives every stage; there is no signing history to keep.'
@@ -312,14 +312,14 @@ const chapters=[
     title:'What an attacker actually faces',
     embed:4,
     body:`<p><strong>At rest</strong>, the stage hash hides fresh Ed25519, Falcon and SLH-DSA keys; no public key carries over from an earlier stage. <strong>Behind</strong>, retired stages cannot authorize the account. <strong>In flight</strong>, a forger must pass all three signature checks and land a competing transaction before rotation.</p>
-<p><strong>The honest limit:</strong> a broadcast that never lands leaves the current stage exposed until rotation. The 100-round validity window expires the transaction, not its exposed keys. Retries keep all three schemes. Each distinct transaction a stage signs costs SLH-DSA a little margin, and the design assumes at most 65,536 per stage. A rotate-only spend retires the stage at any time.</p>`,
+<p><strong>The honest limit:</strong> a broadcast that never lands leaves the current stage exposed until rotation. The 100-round validity window expires the transaction, not its exposed keys. No retry drops a scheme, though each distinct transaction a stage signs costs SLH-DSA a little margin; the design assumes at most 65,536 per stage. A rotate-only spend retires the stage at any time.</p>`,
     take:'All three signatures are required; a successful rotation retires the exposed stage.'
   },
   {
     title:'Bunker mode, without the bunker',
     run:ch9,
     body:`<p><strong>1. Fresh stage keys stay hidden until use.</strong> A stage authorizes one landed spend, then the account moves to fresh Ed25519, Falcon and SLH-DSA keys. No public key is shared between stages.</p>
-<p><strong>2. Stable address.</strong> The address, balance and assets never move, and nobody who pays you has to learn anything new. That is what bunker mode costs, gone.</p>
+<p><strong>2. Stable address.</strong> The address, balance and assets never move, and nobody who pays you has to learn anything new. That cost of bunker mode is gone.</p>
 <p><strong>3. No on-chain state to defend.</strong> LogicSigs are programs, so this isn’t “no code”. But nothing is stored on chain: no contract storage, no upgrade authority, no admin key. The only thing that changes is the account’s ordinary auth-addr.</p>
 <p><strong>4. Cheap rotation.</strong> The rotation is a field of the spend itself, with no separate setup transaction. Ed25519 and Falcon are checked by ${T('opcode','opcode')}s built into the chain; SLH-DSA verification runs its FORS trees and two hypertree layers of WOTS+ hash chains and Merkle authentication paths inside the stage program. The spend carries five companion transactions for signature size and verification budget: six minimum fees, about 0.006 ALGO at the base minimum fee.</p>`,
     take:'Bunker-mode security on every spend, with none of bunker mode’s migrations.'
@@ -697,7 +697,7 @@ const PANELS=[
 ];
 async function ch9(){
   const t=token;
-  topLabel('A Triple Signature Bunker on Algorand');
+  topLabel('Triple-Sig Bunker on Algorand');
   const groups=PANELS.map(p=>{
     const g=el('g',{transform:`translate(${p.x},${p.y})`,opacity:'0'},SCENE);
     el('rect',{class:'gate-box',x:-260,y:-72,width:520,height:144,rx:12},g);
