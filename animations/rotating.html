@@ -663,8 +663,14 @@ const scenes=[
     body:'<code>aplane.rotating-triple-slhdsa.v1</code> replaces a static key with a sequence of TEAL v13 LogicSigs derived from one 24-word BIP-39 seed via <strong>HKDF-SHA-512</strong>, bound to the network genesis hash and the stage number. Each stage has fresh <strong>Ed25519</strong>, <strong>Falcon-1024</strong> and <strong>SLH-DSA</strong> keys. The SLH-DSA key uses the SLH-DSA-SHA2-128s construction of FIPS 205 with a two-layer hypertree (h = 22), which is not a FIPS 205 parameter set: the standard tree lets one key sign 2<sup>64</sup> messages, and a stage key signs only a few. The stage address <code>Aᵢ = SHA-512/256("Program" ‖ bytecode)</code> hides its program, and all three of its public keys, until use.'
   },
   {
-    title:'Spend & atomic rotation: the spend that reveals A₀ hands authority to A₁',
-    body:'To spend from Stage 0, the signer builds a spend that rekeys the account to <code>A₁</code>, refuses any other target, and runs an open test on Stage 1 with a signature it never releases. It signs the transaction ID with <strong>all three</strong> schemes. On chain, the TEAL v13 program checks Ed25519 and Falcon-1024 with built-in opcodes and verifies the SLH-DSA signature: its FORS trees and both hypertree layers of WOTS+ chains and Merkle authentication paths. It requires a rekey away from the account itself, forbids closing the account, and limits validity to <code>≤ 100</code> rounds. When the spend lands, authority moves to <code>A₁</code>, whose fresh Ed25519, Falcon-1024 and SLH-DSA keys replace Stage 0’s authority.'
+    /* Scene 2 plays an unbounded run of spends, so its caption follows the stage on screen. */
+    render:n=>{
+      const a='A'+subNum(n), b='A'+subNum(n+1);
+      return {
+        title:`Spend & atomic rotation: the spend that reveals ${a} hands authority to ${b}`,
+        body:`To spend from Stage ${n}, the signer builds a spend that rekeys the account to <code>${b}</code>, refuses any other target, and runs an open test on Stage ${n+1} with a signature it never releases. It signs the transaction ID with <strong>all three</strong> schemes. On chain, the TEAL v13 program checks Ed25519 and Falcon-1024 with built-in opcodes and verifies the SLH-DSA signature: its FORS trees and both hypertree layers of WOTS+ chains and Merkle authentication paths. It requires a rekey away from the account itself, forbids closing the account, and limits validity to <code>≤ 100</code> rounds. When the spend lands, authority moves to <code>${b}</code>, whose fresh Ed25519, Falcon-1024 and SLH-DSA keys replace Stage ${n}’s authority.`
+      };
+    }
   },
   {
     title:'The chain tracks stages; SLH-DSA needs no signer history',
@@ -782,9 +788,13 @@ async function slideSignals(specs,dur){
 
 /* Update Top Conveyor Pills for active stage n */
 function updateConveyorPills(activeStage, signingNow=false){
-  for(let i=0;i<4;i++){
-    const rect=$('pillRect'+i), txt=$('pillText'+i);
+  /* Pills show stages base..base+3. Early stages sit at their own index; from
+     stage 3 on the window slides so the live pill keeps one retired stage behind it. */
+  const base=activeStage>=3?activeStage-1:0;
+  for(let k=0;k<4;k++){
+    const rect=$('pillRect'+k), txt=$('pillText'+k);
     if(!rect || !txt) continue;
+    const i=base+k;
     if(i < activeStage){
       rect.setAttribute('fill','rgba(90,100,128,0.12)');
       rect.setAttribute('stroke','#34405a');
@@ -811,7 +821,20 @@ function updateConveyorPills(activeStage, signingNow=false){
   }
 }
 function subNum(n){
-  return ['₀','₁','₂','₃','₄'][n]||String(n);
+  const sub='₀₁₂₃₄₅₆₇₈₉';
+  return String(n).replace(/\d/g,d=>sub[d]);
+}
+/* Deterministic stand-in address for stage n, so the chain can run indefinitely. */
+function stageAddr(n){
+  if(STAGE_ADDRS[n]) return STAGE_ADDRS[n];
+  const abc='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let x=(Math.imul(n+1,2654435761)>>>0)||1, out='';
+  for(let i=0;i<8;i++){
+    x=(Math.imul(x,1664525)+1013904223)>>>0;
+    out+=abc[x>>>27];
+    if(i===3) out+='...';
+  }
+  return out;
 }
 
 /* Configure Stage Gate UI for stage n */
@@ -830,7 +853,7 @@ function configureRotatingStage(n, showRetired){
   $('rotGateResult').classList.remove('on','fail');
   ['rotChk1','rotChk2','rotChkX'].forEach(id=>$(id).classList.remove('done','fail'));
 
-  $('queuedTitle').textContent=`NEXT: STAGE ${next} (A${subNum(next)} · ${STAGE_ADDRS[next]||'DERIVED'})`;
+  $('queuedTitle').textContent=`NEXT: STAGE ${next} (A${subNum(next)} · ${stageAddr(next)})`;
   $('queuedSub').textContent='🔒 fresh Ed/Falcon/SLH-DSA keys';
   $('queuedSlot').setAttribute('transform','translate(520,508)');
   $('queuedSlot').setAttribute('opacity','1');
@@ -888,7 +911,7 @@ async function animateStageRotation(n){
       if(!swapped){
         swapped=true;
         configureRotatingStage(next, true);
-        $('queuedTitle').textContent=`NEXT: STAGE ${afterNext} (A${subNum(afterNext)} · ${STAGE_ADDRS[afterNext]||'DERIVED'})`;
+        $('queuedTitle').textContent=`NEXT: STAGE ${afterNext} (A${subNum(afterNext)} · ${stageAddr(afterNext)})`;
         $('queuedSub').textContent='🔒 fresh Ed/Falcon/SLH-DSA keys';
       }
       const v=ease((p-0.48)/0.52);
@@ -1088,11 +1111,14 @@ async function runSingleSpendCycle(stageIdx, amountLabel){
 async function loopScene2(){
   const t=token;
   showLayer('layerRotating');
-  setFootnote('THE TRANSACTION THAT REVEALS STAGE 0 HANDS ACCOUNT CONTROL TO STAGE 1 (A₁)');
-  while(t.alive){
-    if(!await runSingleSpendCycle(0, 'pay 500')) return;
-    stamp(LAY.stamp[0],LAY.stamp[1],PORTRAIT?'A₀ RETIRED · A₁ LIVE':'A₀ RETIRED · A₁ NOW ACTIVE & HASH-SHIELDED',true);
-    if(!await sleep(3600)) return;
+  /* Stages keep advancing for as long as the scene plays; nothing caps the chain. */
+  for(let n=0; t.alive; n++){
+    const a=`A${subNum(n)}`, b=`A${subNum(n+1)}`;
+    if(n>0) updateCaption(2,n);
+    setFootnote(`THE TRANSACTION THAT REVEALS STAGE ${n} HANDS ACCOUNT CONTROL TO STAGE ${n+1} (${b})`);
+    if(!await runSingleSpendCycle(n, 'pay 500')) return;
+    stamp(LAY.stamp[0],LAY.stamp[1],PORTRAIT?`${a} RETIRED · ${b} LIVE`:`${a} RETIRED · ${b} NOW ACTIVE & HASH-SHIELDED`,true);
+    if(!await sleep(n===0?3600:2200)) return;
   }
 }
 
@@ -1250,8 +1276,8 @@ function runLoop(n){
 }
 
 let current=-1, busy=false;
-function updateCaption(n){
-  const sc=scenes[n], inner=$('capInner');
+function updateCaption(n, stage=0){
+  const sc=scenes[n].render?scenes[n].render(stage):scenes[n], inner=$('capInner');
   inner.classList.remove('swap'); void inner.offsetWidth; inner.classList.add('swap');
   const pad=k=>String(k).padStart(2,'0');
   $('capKicker').textContent='SCENE '+pad(n+1);
